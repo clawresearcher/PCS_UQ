@@ -76,11 +76,15 @@ python experiments/scripts/reproduction_contract.py collect \
   --output experiments/reproduction/classification_completed_rows.csv
 ```
 
-The collector fails on the first missing, duplicate, reused, unreadable, malformed,
-out-of-domain, empty, or non-finite artifact. Only a complete panel gets a
-completed-row table and matching hash-bound JSON report. A later failed collection
-removes stale completion claims before validation; publication uses unique staged
-paths so concurrent collectors cannot share a temporary file.
+The collector fails on the first missing, duplicate, reused, unauthenticated,
+unreadable, malformed, out-of-domain, empty, or non-finite artifact. Each artifact
+must carry a producer provenance sidecar bound to the task, inventory, contract,
+scientific-source hash, universe hash, kind, and exact bytes. Only a complete panel
+gets a completed-row table and matching hash-bound JSON report. The report embeds
+a canonical, location-free `collection_hash`; strict aggregators verify the report,
+CSV hash, and every member hash before reading. A later failed collection removes
+stale completion claims before validation; publication uses unique staged paths so
+concurrent collectors cannot share a temporary file.
 
 Output hashes are scoped by materialization rather than attached blindly to the
 family-level ASTRA output declaration. See `ASTRA_OUTPUT_IDENTITY.md` for the

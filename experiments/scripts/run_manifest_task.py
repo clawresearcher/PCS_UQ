@@ -8,7 +8,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-from experiments.scripts.reproduction_contract import load_and_bind_inventory
+from experiments.scripts.reproduction_contract import (
+    artifact_paths,
+    load_and_bind_inventory,
+    write_artifact_provenance,
+)
 
 
 def main() -> None:
@@ -46,7 +50,17 @@ def main() -> None:
         row["train_size"],
     ]
     print("PCS_UQ_TASK", *command, flush=True)
-    subprocess.run(command, check=True)
+    subprocess.run(command, check=True, cwd=args.repository)
+    results_root = (
+        args.repository / "experiments/results/reg_max"
+        if row["family"] == "regression"
+        else args.repository / "experiments/results/class_max"
+    )
+    paths = artifact_paths(results_root, row)
+    missing = [str(path) for path in paths.values() if not path.is_file()]
+    if missing:
+        raise SystemExit(f"producer did not emit expected artifacts: {missing}")
+    write_artifact_provenance(row, args.inventory, args.repository, paths)
 
 
 if __name__ == "__main__":

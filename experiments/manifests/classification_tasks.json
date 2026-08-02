@@ -1,9 +1,9 @@
 {
   "schema": "pcs-uq-task-inventory-v2",
   "family": "classification",
-  "repository_revision": "156bf95b839dd8e7d9df8c420926cd4e1aaa342c",
-  "scientific_source_sha256": "7d82453913a3ffa28da1ed5d93cd9c8eac5d6dd84c7b54b9942323ff9d894106",
-  "contract_sha256": "0bb45a72afe3d5c624aafd5b636836b197e697b5148fa5c08c1a64c59001a5b6",
+  "repository_revision": "c3bfc8d13721fac712a17836b75aeeb55a8c7bd6",
+  "scientific_source_sha256": "1f6d9d54b84681980c3580ba3e424d2be7664ec0c9e1d0b3d20035e715614cd8",
+  "contract_sha256": "d28fe4b8aad8bdc28528a043bc8532a8f42817644c513b1303a4dc6f09897efe",
   "task_count": 1020,
   "task_inventory": "classification_tasks.csv",
   "task_inventory_sha256": "8527209d8161d2122ed65cd3127562488e1ea8ebc8e61d3f0e25551821ed19f1",
@@ -19,5 +19,8 @@
     785,
     786
   ],
-  "train_size": "0.8"
+  "train_size": "0.8",
+  "identity_schema": "pcs-uq-identity-v1",
+  "universe_id": "current_repository",
+  "universe_hash": "sha256:e8df762c58d5537336f6eccc775146585d06b1b77ae43d99aa304623c57bbb56"
 }

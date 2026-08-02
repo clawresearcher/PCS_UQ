@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 
 from experiments.scripts import reproduction_contract as contract
+from experiments.scripts import aggregate_complete
 
 
 def test_frozen_task_counts_names_and_unique_keys() -> None:
@@ -44,6 +45,11 @@ def write_inventory(
         writer.writerows(rows)
     monkeypatch.setattr(contract, "git_revision", lambda root: "sha256:test")
     monkeypatch.setattr(contract, "repository_tree_hash", lambda root: "sha256:tree")
+    monkeypatch.setattr(
+        contract,
+        "universe_identity",
+        lambda root, universe_id: ("sha256:universe", {"universe_id": universe_id}),
+    )
     metadata = {
         "schema": "pcs-uq-task-inventory-v2",
         "family": rows[0]["family"],
@@ -52,6 +58,9 @@ def write_inventory(
         "contract_sha256": contract.sha256(Path(contract.__file__)),
         "task_count": len(rows),
         "task_inventory_sha256": contract.sha256(path),
+        "identity_schema": contract.IDENTITY_SCHEMA,
+        "universe_id": "current_repository",
+        "universe_hash": "sha256:universe",
     }
     path.with_suffix(".json").write_text(json.dumps(metadata))
 
@@ -79,7 +88,11 @@ def class_metrics() -> dict[str, np.ndarray]:
     }
 
 
-def write_task_artifacts(root: Path, row: dict[str, object]) -> None:
+def write_task_artifacts(
+    root: Path,
+    row: dict[str, object],
+    inventory: Path,
+) -> None:
     string_row = {key: str(value) for key, value in row.items()}
     artifacts = contract.artifact_paths(root, string_row)
     for kind, path in artifacts.items():
@@ -102,6 +115,7 @@ def write_task_artifacts(root: Path, row: dict[str, object]) -> None:
             }
         with path.open("wb") as handle:
             pickle.dump(value, handle)
+    contract.write_artifact_provenance(string_row, inventory, Path("."), artifacts)
 
 
 def test_collect_fails_closed_and_removes_stale_publication(
@@ -131,16 +145,45 @@ def test_collect_certifies_distinct_complete_artifacts(
     write_inventory(inventory, rows, monkeypatch)
     results = tmp_path / "results"
     for row in rows:
-        write_task_artifacts(results, row)
+        write_task_artifacts(results, row, inventory)
     completed = tmp_path / "complete.csv"
     contract.collect("classification", inventory, results, completed, False, Path("."))
     report = json.loads(completed.with_suffix(".json").read_text())
     assert report["status"] == "complete"
     assert report["task_count"] == 2
+    assert report["universe_hash"] == "sha256:universe"
+    assert report["collection_hash"].startswith("sha256:")
+    assert report["collection_manifest"]["validation"] == {
+        "status": "complete",
+        "expected_count": 8,
+        "observed_count": 8,
+        "omitted": [],
+    }
     with completed.open(newline="") as handle:
         records = list(csv.DictReader(handle))
     assert len({record["metrics_path"] for record in records}) == 2
     assert all("full_class_metrics_sha256" in record for record in records)
+
+    grouped, authenticated = aggregate_complete.load_authenticated(
+        completed,
+        completed.with_suffix(".json"),
+        "classification",
+        "metrics",
+        Path("."),
+        seeds_per_cell=1,
+    )
+    assert authenticated["collection_hash"] == report["collection_hash"]
+    assert len(grouped) == 2
+    metrics_path = Path(records[0]["metrics_path"])
+    metrics_path.write_bytes(metrics_path.read_bytes() + b"tamper")
+    with pytest.raises(contract.ReproductionError, match="artifact changed"):
+        aggregate_complete.load_authenticated(
+            completed,
+            completed.with_suffix(".json"),
+            "classification",
+            "metrics",
+            Path("."),
+        )
 
 
 def test_collect_rejects_invalid_metric_domain(
@@ -151,7 +194,7 @@ def test_collect_rejects_invalid_metric_domain(
     inventory = tmp_path / "tasks.csv"
     write_inventory(inventory, rows, monkeypatch)
     results = tmp_path / "results"
-    write_task_artifacts(results, rows[0])
+    write_task_artifacts(results, rows[0], inventory)
     metrics = contract.artifact_paths(
         results, {key: str(value) for key, value in rows[0].items()}
     )["metrics"]

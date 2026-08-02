@@ -1,96 +1,108 @@
 # Output identity across universes
 
-An ASTRA output declaration is a **family of potential artifacts**, not one blob.
-A universe fixes the decisions needed to materialize one member of that family.
-Therefore a single `output.hash` is generally wrong whenever an output can exist in
-more than one universe.
+An ASTRA output declaration is a family of potential artifacts, not one blob. A
+universe fixes the decisions for one logical output slot. This fork uses the
+following implemented identity model.
 
-## Proposed identity model
+## Typed canonical hashes
 
-For a materialized artifact `A` in universe `U`:
-
-```text
-artifact_hash(A) = sha256(canonical output bytes)
-universe_hash(U) = sha256(canonical resolved decision map)
-instance_key     = (output_id, universe_hash, projection coordinates)
-```
-
-The artifact hash remains purely content-addressed and globally reusable. The
-universe hash identifies the scientific choice context. `output_id` is only the
-project-local semantic role. A mutable path or URL is only a location.
-
-A materialization manifest should therefore look like:
-
-```yaml
-output: regression_seed_metrics
-universe:
-  id: current_repository
-  hash: sha256:...
-  decisions:
-    seed_policy: paper_777_786
-    training_cap: uncapped_current
-artifact:
-  hash: sha256:...
-  location: experiments/results/reg_max/...
-provenance:
-  inputs:
-    regression_data: sha256:...
-  implementation: sha256:...
-```
-
-If two universes produce byte-identical output, they intentionally share the same
-`artifact.hash`, while retaining two instance records with different universe
-hashes. That is deduplication, not identity collapse: same bytes do not prove the
-same method or interpretation.
-
-## Collections and multiverses
-
-A projected output over many universes should not pretend to have one ordinary
-artifact hash. It is a collection with a canonical manifest:
+Every structured identity is canonical JSON encoded as UTF-8 with sorted keys,
+compact separators, preserved Unicode, rejected NaN/Infinity, and an explicit
+schema version. Hash domains are separated:
 
 ```text
-collection_hash = sha256(sorted canonical records of
-  (universe_hash, projection coordinates, artifact_hash))
+H(domain, value) = sha256(ASCII(domain) || NUL || canonical_json(value))
 ```
 
-The collection hash changes when membership or any member content changes. It does
-not hash mutable locations. Completeness belongs in this manifest too: expected
-coordinates, observed coordinates, and the fail-closed validation report.
+The current domains are `astra-universe-v1`, `pcs-uq-task-v1`, and
+`astra-collection-v1`. Artifact files use `sha256` over the exact file bytes; this
+identifies the serialized blob, not a format-independent scientific value.
+
+## Logical slots and materializations
+
+```text
+universe_hash = H("astra-universe-v1", {
+  schema, analysis ID/version, universe ID, complete decision map
+})
+
+task_hash = H("pcs-uq-task-v1", {
+  inventory_hash, complete task coordinates
+})
+
+logical_slot = (output_id, universe_hash, task_hash, artifact_kind)
+materialization = (logical_slot, artifact_hash, provenance)
+```
+
+A logical slot is not itself a materialization identity. Reruns with different
+bytes occupy the same slot but have different materializations. Producer
+provenance binds each pickle to the task, inventory, contract, scientific-source
+hash, universe hash, artifact kind, exact artifact hash, and producer revision.
+
+Two universes may produce byte-identical files. Those files share an artifact hash
+but retain distinct slots and provenance. Equal bytes never imply equal method or
+interpretation.
+
+## Complete collections
+
+The completion report embeds a location-free canonical collection manifest:
+
+```text
+collection_hash = H("astra-collection-v1", {
+  schema,
+  output_id,
+  universe_hash and resolved universe,
+  inventory/scientific-source/contract hashes,
+  expected members: sorted (task_hash, artifact_kind),
+  observed members: sorted (task_hash, artifact_kind, artifact_hash),
+  validation: status, expected_count, observed_count, omissions
+})
+```
+
+Mutable filesystem paths live only in the paired completed-row CSV. They are not
+part of `collection_hash`. Completeness is in the hash preimage, so a complete
+smaller collection cannot masquerade as an incomplete larger one. Downstream
+aggregation verifies both the completed-row hash and canonical collection hash,
+then rehashes each artifact before reading it.
+
+The CSV/report pair cannot be renamed as one atomic filesystem operation. The JSON
+report authenticates the CSV hash, and consumers must verify the pair. A crash
+between publication renames is detectable and cannot pass strict aggregation.
+
+## Multiverses
+
+A multiverse collection uses the same collection construction, but expected and
+observed members additionally include each member's `universe_hash`. No hash is
+assigned to a declaration or hypothetical Cartesian product. This repository's
+broad regression and ablation sensitivity spaces remain unmaterialized because the
+current runners do not parameterize every declared decision or provide
+collision-free storage for that product.
 
 ## Relationships
 
-Relationships should point to content hashes (or collection hashes), with optional
-universe context:
+Relationships address a materialization reference, not a bare blob hash:
 
 ```yaml
 rel:
-  - predicate: almost_same_content
-    object: sha256:...
-    universe: sha256:...
   - predicate: same_method
-    object: sha256:...
-  - predicate: same_implementation
-    object: sha256:...
-  - predicate: extends
-    object: sha256:...
-  - predicate: supersedes
-    object: sha256:...
-  - predicate: contradicts
-    object: sha256:...
+    object:
+      output: regression_seed_metrics
+      universe_hash: sha256:...
+      task_hash: sha256:...
+      artifact_hash: sha256:...
 ```
 
-These predicates are assertions backed by provenance, not consequences of hash
-equality. `almost_same_content` also needs a declared comparison function and
-threshold; it cannot be inferred from SHA-256.
+Predicates such as `same_method`, `same_implementation`, `extends`, `supersedes`,
+and `contradicts` are provenance assertions. `almost_same_content` additionally
+requires a named comparison function, version, parameters, and threshold; it
+cannot be inferred from SHA-256.
 
-## Rule for this fork
+## Current scope
 
-- Per-task pickle hashes identify output bytes.
-- The task inventory plus resolved scientific-source hash identifies the current
-  execution universe/projection contract.
-- A completion report is a collection manifest over every expected task key and
-  artifact hash.
-- Paper-era capped and current uncapped outputs never share an instance identity,
-  even if a particular pickle happens to be byte-identical.
-- Multi-universe projections remain unmaterialized until they have explicit member
-  manifests; ASTRA declarations alone do not receive fabricated output hashes.
+- Current regression/classification manifest tasks receive producer-bound
+  provenance sidecars and can enter strict completion collections.
+- Historical paper-era pickles are comparison evidence at an immutable Git commit,
+  not authenticated outputs of the current universe.
+- Classification primary/full and marginal/classwise pickles remain distinct
+  artifact kinds inside one task bundle and receive distinct content hashes.
+- Full sensitivity multiverses have no artifact or collection hashes until an
+  executable constrained inventory materializes them.

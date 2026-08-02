@@ -168,12 +168,11 @@ outputs:
       - pcs_bootstraps
       - prediction_check_k
       - calibration_geometry
-    target: experiments/results/reg_max/data_*/*_seed_*_train_size_0.8_metrics.pkl
+    target: experiments/results/reg_max/
     recipe:
       command: >-
-        python -m experiments.scripts.run_regression_exp --dataset DATASET
-        --seed SEED --UQ_method UQ_METHOD --estimator ESTIMATOR
-        --train_size 0.8
+        python -m experiments.scripts.run_manifest_task
+        --inventory experiments/manifests/regression_tasks.csv --task-id TASK_ID
 
   - id: regression_subgroup_metrics
     label: "Per-seed regression subgroup metrics"
@@ -188,12 +187,11 @@ outputs:
       - subgroup_feature_scope
       - subgroup_construction
       - subgroup_width_normalization
-    target: experiments/results/reg_max/data_*/*_seed_*_train_size_0.8_subgroup_metrics.pkl
+    target: experiments/results/reg_max/
     recipe:
       command: >-
-        python -m experiments.scripts.run_regression_exp --dataset DATASET
-        --seed SEED --UQ_method UQ_METHOD --estimator ESTIMATOR
-        --train_size 0.8
+        python -m experiments.scripts.run_manifest_task
+        --inventory experiments/manifests/regression_tasks.csv --task-id TASK_ID
 
   - id: regression_aggregate
     label: "Historical aggregated regression metrics"
@@ -225,23 +223,29 @@ outputs:
       Aggregate produced from current uncapped reg_max per-seed artifacts. It is
       a future cluster output and is not interchangeable with the committed
       paper-era regression aggregate.
-    inputs: [regression_completion_report]
+    inputs: [regression_completed_rows, regression_completion_report]
     decisions: [training_cap, seed_policy, seed_completion_policy, seed_aggregation]
     target: experiments/results/reg_max/aggregated_results/all_results_train_size_0.8.pkl
     recipe:
       command: >-
-        python experiments/scripts/agg_results.py --task reg_max --train_size 0.8
+        python -m experiments.scripts.aggregate_complete --family regression
+        --completed-rows experiments/reproduction/regression_completed_rows.csv
+        --report experiments/reproduction/regression_completed_rows.json
+        --output experiments/results/reg_max/aggregated_results/all_results_train_size_0.8.pkl
 
   - id: subgroup_current_aggregate
     label: "Current reg_max subgroup aggregate"
     type: data
     description: "Future aggregate from the current uncapped subgroup jobs."
-    inputs: [regression_completion_report]
+    inputs: [regression_completed_rows, regression_completion_report]
     decisions: [training_cap, subgroup_width_normalization, seed_policy, seed_completion_policy, seed_aggregation]
     target: experiments/results/reg_max/aggregated_results/all_subgroup_results_train_size_0.8.pkl
     recipe:
       command: >-
-        python experiments/scripts/agg_results.py --task reg_max --train_size 0.8
+        python -m experiments.scripts.aggregate_complete --family regression --subgroups
+        --completed-rows experiments/reproduction/regression_completed_rows.csv
+        --report experiments/reproduction/regression_completed_rows.json
+        --output experiments/results/reg_max/aggregated_results/all_subgroup_results_train_size_0.8.pkl
 
   - id: regression_main_figure
     label: "Paper regression width figure"
@@ -274,7 +278,7 @@ outputs:
       - subgroup_report_roster
       - subgroup_display_selection
       - figure_execution_mode
-    target: experiments/notebooks/figures/subgroup_*.pdf
+    target: experiments/notebooks/figures/
     recipe:
       command: jupyter nbconvert --execute --to notebook --inplace experiments/notebooks/subgroup_reg_viz.ipynb
 
@@ -300,24 +304,28 @@ outputs:
       - classification_score
       - classification_size_normalization
       - empty_set_policy
-    target: experiments/results/class_max/data_*/*_seed_*_train_size_0.8_*metrics.pkl
+    target: experiments/results/class_max/
     recipe:
       command: >-
-        python -m experiments.scripts.run_classification_exp --dataset DATASET
-        --seed SEED --UQ_method UQ_METHOD --estimator ESTIMATOR
-        --train_size 0.8
+        python -m experiments.scripts.run_manifest_task
+        --inventory experiments/manifests/classification_tasks.csv --task-id TASK_ID
 
   - id: classification_aggregate
     label: "Aggregated multiclass metrics"
     type: data
     description: |
-      Mean and population standard deviation over available primary metric
-      pickles for the configured six datasets. Missing runs are skipped.
-    inputs: [classification_completion_report]
+      Strict mean and population standard deviation over exactly ten authenticated
+      primary metric artifacts per dataset/method/estimator cell. The recipe
+      verifies the completion collection and every artifact hash before reading.
+    inputs: [classification_completed_rows, classification_completion_report]
     decisions: [seed_policy, seed_completion_policy, seed_aggregation, empty_set_policy, classification_size_normalization]
     target: experiments/results/class_max/aggregated_results/all_results_train_size_0.8.pkl
     recipe:
-      command: python experiments/scripts/agg_results_classification.py --task class_max --train_size 0.8
+      command: >-
+        python -m experiments.scripts.aggregate_complete --family classification
+        --completed-rows experiments/reproduction/classification_completed_rows.csv
+        --report experiments/reproduction/classification_completed_rows.json
+        --output experiments/results/class_max/aggregated_results/all_results_train_size_0.8.pkl
 
   - id: classification_figure
     label: "Paper multiclass set-size figure"
@@ -339,9 +347,10 @@ outputs:
     label: "Regression ablation per-seed metrics"
     type: data
     description: |
-      Experiments vary bootstrap count, training fraction, selected-model count,
-      or calibration geometry. The active submit script currently selects only
-      the model-count experiment; other grids are retained as commented history.
+      Interpretive record of historical ablation experiment families. The active
+      code can execute one fully specified CLI row, but this ASTRA declaration does
+      not define a collision-free complete task inventory or authenticated
+      multiverse materialization; no executable recipe or output hash is claimed.
     inputs: [processed_regression_benchmark, regression_code, paper_protocol]
     decisions:
       - ablation_family
@@ -351,13 +360,7 @@ outputs:
       - training_fraction
       - prediction_check_k
       - calibration_geometry
-    target: experiments/results/ablation/*/data_*/*_ablation_metrics.pkl
-    recipe:
-      command: >-
-        python -m experiments.scripts.ablation_exp --dataset DATASET --seed SEED
-        --UQ_method UQ_METHOD --estimator ESTIMATOR --train_size 0.8
-        --n_boot N_BOOT --abl_type ABLATION --train_frac TRAIN_FRAC
-        --n_model TOP_K --calibration_method CALIBRATION
+    target: experiments/scripts/ablation_exp.py
 
   - id: ablation_figures
     label: "Paper ablation figures"
@@ -367,9 +370,17 @@ outputs:
       additive-versus-multiplicative calibration sensitivity.
     inputs: [ablation_seed_metrics, paper_protocol]
     decisions: [ablation_family, figure_execution_mode]
-    target: experiments/notebooks/figures/ablation_*.pdf
+    target: experiments/notebooks/figures/
     recipe:
       command: jupyter nbconvert --execute --to notebook --inplace experiments/notebooks/viz_ablation.ipynb
+
+  - id: regression_completed_rows
+    label: "Authenticated regression collection rows"
+    type: data
+    description: "Location-bearing table paired with the canonical location-free collection manifest."
+    inputs: [regression_seed_metrics, regression_subgroup_metrics, regression_task_inventory, reproduction_contract]
+    decisions: [seed_completion_policy, paper_alignment_policy]
+    target: experiments/reproduction/regression_completed_rows.csv
 
   - id: regression_completion_report
     label: "Strict complete regression panel"
@@ -386,6 +397,14 @@ outputs:
         --family regression --inventory experiments/manifests/regression_tasks.csv
         --results-root experiments/results/reg_max --require-subgroups
         --output experiments/reproduction/regression_completed_rows.csv
+
+  - id: classification_completed_rows
+    label: "Authenticated classification collection rows"
+    type: data
+    description: "Location-bearing table paired with the canonical location-free collection manifest."
+    inputs: [classification_seed_metrics, classification_task_inventory, reproduction_contract]
+    decisions: [seed_completion_policy, paper_alignment_policy]
+    target: experiments/reproduction/classification_completed_rows.csv
 
   - id: classification_completion_report
     label: "Strict complete classification panel"
@@ -423,7 +442,9 @@ outputs:
       paper-figure comparisons. No successful reproduction is claimed by this
       registration.
     inputs:
+      - regression_completed_rows
       - regression_completion_report
+      - classification_completed_rows
       - classification_completion_report
       - regression_current_aggregate
       - subgroup_current_aggregate
@@ -438,26 +459,26 @@ outputs:
     target: ASTRA_REPRODUCTION.md
 
   - id: regression_sensitivity_projection
-    label: "Regression multiverse projection"
-    type: data
+    label: "Unmaterialized regression sensitivity design"
+    type: report
     description: |
-      Draft RFC #52 collection across registered regression protocol alternatives.
-      Declared for tomorrow's reproduction audit; no materialized collection is
-      claimed yet.
-    inputs: [regression_seed_metrics#regression_sensitivity]
-    decisions: [paper_alignment_policy]
-    target: astra-results/regression-sensitivity/
+      Interpretive declaration only. Current runners and artifact names do not
+      parameterize the full decision Cartesian product, so no executable output or
+      collection hash is claimed. Materialization requires a future constrained
+      task inventory with collision-free coordinates.
+    inputs: [reproduction_contract]
+    decisions: []
+    target: ASTRA_OUTPUT_IDENTITY.md
 
   - id: ablation_projection
-    label: "Registered ablation multiverse"
-    type: data
+    label: "Unmaterialized ablation sensitivity design"
+    type: report
     description: |
-      Draft collection across bootstrap, training-fraction, model-count, and
-      calibration alternatives. The repository has only partial historical
-      materialization and the active shell script selects one family at a time.
-    inputs: [ablation_seed_metrics#ablation_sensitivity]
-    decisions: [paper_alignment_policy]
-    target: astra-results/ablation-sensitivity/
+      Interpretive declaration only. No multiverse collection has been produced or
+      authenticated; ASTRA_OUTPUT_IDENTITY.md records the required collection model.
+    inputs: [reproduction_contract]
+    decisions: []
+    target: ASTRA_OUTPUT_IDENTITY.md
 
 universes:
   - id: paper_regression
@@ -540,7 +561,10 @@ universes:
 
 multiverses:
   - id: regression_sensitivity
-    description: "Method, estimator, split, calibration, and PCS-design sensitivity."
+    description: |
+      Interpretive sensitivity design only. Current execution is limited to the
+      frozen current_repository task inventory; this multiverse has no materialized
+      output collection or hash.
     decisions:
       regression_method: "*"
       estimator: "*"
@@ -550,7 +574,9 @@ multiverses:
       calibration_geometry: "*"
 
   - id: ablation_sensitivity
-    description: "Paper-motivated PCS design ablations."
+    description: |
+      Interpretive ablation design only; unsupported combinations and storage
+      collisions are not expanded, executed, or assigned hashes.
     decisions:
       ablation_family: "*"
       pcs_bootstraps: "*"
