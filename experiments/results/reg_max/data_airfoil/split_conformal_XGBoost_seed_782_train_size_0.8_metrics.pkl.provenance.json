@@ -18,7 +18,7 @@
   "scientific_source_hash": "sha256:4694d894ab3471afce88f8bf413fcf88608d2a55aefc79cf464e70c18ecc79b4",
   "universe_id": "current_repository",
   "universe_hash": "sha256:ab253875f8fbe5f43deb0c4ed4cf9d075e165adfa1f95e5f744253a341647f04",
-  "producer_revision": "75481c844e15123ae01b09d5574dba68154a6cd6",
+  "producer_revision": "f90e1dc84a82c22a8a0cac371216c648a878600b",
   "artifact_kind": "metrics",
-  "artifact_hash": "sha256:7c4c699f3247c205a094a0679a525e3d9bf40c138bbb69fbb85ae6173af6b062"
+  "artifact_hash": "sha256:436f6301dfdaf0f70bdc071521191639d796cadd8b366b67488e3dd94c62fd0b"
 }

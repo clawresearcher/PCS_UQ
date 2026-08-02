@@ -113,6 +113,7 @@ def main() -> None:
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--subgroups", action="store_true")
+    parser.add_argument("--output-id")
     parser.add_argument("--repository", type=Path, default=Path("."))
     args = parser.parse_args()
 
@@ -130,8 +131,9 @@ def main() -> None:
     metadata_path = args.output.with_suffix(args.output.suffix + ".provenance.json")
     metadata = {
         "schema": "pcs-uq-strict-aggregate-provenance-v2",
-        "output_id": (
-            "regression_current_subgroup_aggregate"
+        "output_id": args.output_id
+        or (
+            "subgroup_current_aggregate"
             if args.subgroups
             else "regression_current_aggregate"
             if args.family == "regression"

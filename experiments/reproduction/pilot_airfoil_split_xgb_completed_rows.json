@@ -4,7 +4,7 @@
   "family": "regression",
   "universe_id": "current_repository",
   "universe_hash": "sha256:ab253875f8fbe5f43deb0c4ed4cf9d075e165adfa1f95e5f744253a341647f04",
-  "collection_hash": "sha256:37bba42b2c0dd973d469dc0bc5776536cf880a466eb50527ad560bc66a3e507a",
+  "collection_hash": "sha256:75673e481249a3e5e3743ba450178dd74d25f74ab5dba08c6f8d9f6074a5b603",
   "collection_manifest": {
     "schema": "pcs-uq-output-collection-v2",
     "output_ids": [
@@ -168,61 +168,61 @@
         "output_id": "regression_seed_metrics",
         "task_hash": "sha256:0da74e1520af6c50883be27d5d82151d437b801034cc6bd906a5f3ef2f816bb9",
         "artifact_kind": "metrics",
-        "artifact_hash": "sha256:7052ac96f5adce8fe51772374cc532f828cf1963fcd10edf64d960443722bf7b"
+        "artifact_hash": "sha256:31f3e280a897fc9f261605806150f97d0824c95f5662a7b79be4898eaaca2abc"
       },
       {
         "output_id": "regression_seed_metrics",
         "task_hash": "sha256:1486970aa33440274a82bc0e715067a889abda317b408230ba8ac405951e1b6f",
         "artifact_kind": "metrics",
-        "artifact_hash": "sha256:3cdb6e3dbcd7de111b141750b25c6a6ed25f94553d98531cb21a58651989d34f"
+        "artifact_hash": "sha256:f792588183c42b0a83b80dd032fc27c8b365167c79bc76c2ece38e3e8c3830a0"
       },
       {
         "output_id": "regression_seed_metrics",
         "task_hash": "sha256:30aec5c7efd0c1d26d17eb5a734d68e71d3bd5e16085ea91911c58e84e785ac3",
         "artifact_kind": "metrics",
-        "artifact_hash": "sha256:dd4bc01cd024e483c183bd8ede94a720e6d3164d4a33789cc1b6613549b07c9b"
+        "artifact_hash": "sha256:ad5099e0328a7bd8834d26f87cec14c84200ecf6d0f850046919528bade273c8"
       },
       {
         "output_id": "regression_seed_metrics",
         "task_hash": "sha256:311101a73a45881be21ece2db3ba8f4fd1c8ae17b17a605ed3660e18fd21d436",
         "artifact_kind": "metrics",
-        "artifact_hash": "sha256:0f3602d7a79598c11c0fba9387d6a34797f9be18a0f12d076a7069bb60dbd427"
+        "artifact_hash": "sha256:6e7f10cf74f5420e959acfcbbc33917eb640d396e5708c8ca468157fe9ba90e7"
       },
       {
         "output_id": "regression_seed_metrics",
         "task_hash": "sha256:816da3299dfed5716dca0d9ca795d50707f27a486bcc00d8c588ccbc214f6441",
         "artifact_kind": "metrics",
-        "artifact_hash": "sha256:a543ba68ae6d84a27bdf0732403c0300931e6a25b7538b2dabb81219532515b5"
+        "artifact_hash": "sha256:a831b2a1c53eb7c33891ffc5a3a8e35575f798df3e657106bc16fb23dc30b683"
       },
       {
         "output_id": "regression_seed_metrics",
         "task_hash": "sha256:905554e8e38d9ed490723293bdf818b189ed2a2d0c0cde9e6d23ea3829d20eac",
         "artifact_kind": "metrics",
-        "artifact_hash": "sha256:7c4c699f3247c205a094a0679a525e3d9bf40c138bbb69fbb85ae6173af6b062"
+        "artifact_hash": "sha256:436f6301dfdaf0f70bdc071521191639d796cadd8b366b67488e3dd94c62fd0b"
       },
       {
         "output_id": "regression_seed_metrics",
         "task_hash": "sha256:c790cbbfe9f016fb63d5b658707bb232950ee0c07d4e686a82dedebe767711a0",
         "artifact_kind": "metrics",
-        "artifact_hash": "sha256:8dd20937352668531b311789cbd8e1b9297b97750cfeaa03a199015cba5e15a5"
+        "artifact_hash": "sha256:482fa1ef0ecc1527b59926b651b18452181083be71b4802205a35b8089992df5"
       },
       {
         "output_id": "regression_seed_metrics",
         "task_hash": "sha256:d9f4b206a05fbe4df5eb06386f5adf4f8b3f50690603c84e17f57c529e7919de",
         "artifact_kind": "metrics",
-        "artifact_hash": "sha256:d0206e0ccc0f38af8c231704f9ec46adb0cc7e1b3313ed26c9496bb881c87c58"
+        "artifact_hash": "sha256:2911789302071a51ea1aabc445b53a40cb07cbd54d118d4ad31bf89bc172cc83"
       },
       {
         "output_id": "regression_seed_metrics",
         "task_hash": "sha256:e1c728d277a402bb831d21bbb39cff1f3507c0700d8a725ab9cb5041b908bb77",
         "artifact_kind": "metrics",
-        "artifact_hash": "sha256:71ec17217b2a45d164464dc619448f428cba3c99f2f700af239d3aa3b71f95a9"
+        "artifact_hash": "sha256:523f32d7082233e4e2c1c95f729a8c6c50ce3b80747899384bd09480b4f93a2a"
       },
       {
         "output_id": "regression_seed_metrics",
         "task_hash": "sha256:ee734869574fa3a02e138759a4f9f8fb3bc6184335d6050d5d4b5a0a86413ef8",
         "artifact_kind": "metrics",
-        "artifact_hash": "sha256:dc683fd2ab408845e6f37528fab7cef1047a1a1415ee6afd923e14a389a68808"
+        "artifact_hash": "sha256:8a4d173ab69d4bc2c631c975431bff7035e472eeedfc4055830c996972706f6e"
       },
       {
         "output_id": "regression_subgroup_metrics",
@@ -292,15 +292,15 @@
       "omitted": []
     }
   },
-  "repository_revision": "75481c844e15123ae01b09d5574dba68154a6cd6",
+  "repository_revision": "f90e1dc84a82c22a8a0cac371216c648a878600b",
   "scientific_source_sha256": "4694d894ab3471afce88f8bf413fcf88608d2a55aefc79cf464e70c18ecc79b4",
   "contract_sha256": "d1d546a1942da2968c28572484908639ad7822b141d48059818af2d6d8c4ddd7",
   "inventory_path": "experiments/manifests/pilot_airfoil_split_xgb_tasks.csv",
   "inventory_sha256": "d2119cde92e6845a0520506817ac9771033893c4acc76f1ce711b751337a5dd8",
-  "inventory_metadata_sha256": "92b5b77c28e26f1e1ac33b578598eddcb2d1671acb5500be1dcd485af0932e93",
+  "inventory_metadata_sha256": "a0e9273f147399805644777f8cd2cad886629ceb8f66cf1a8324e1c48a3971dc",
   "results_root": "experiments/results/reg_max",
   "task_count": 10,
   "completed_rows_path": "experiments/reproduction/pilot_airfoil_split_xgb_completed_rows.csv",
-  "completed_rows_sha256": "cc6d919220060ac73d9fc9396a51e402c27f1dfb21cb3cb8d17bbd2df3edf9c5",
+  "completed_rows_sha256": "71fb46b11cf4009ab1db93e6328590b328c29a6184652d19da38f2852b5e3d5c",
   "require_subgroups": true
 }

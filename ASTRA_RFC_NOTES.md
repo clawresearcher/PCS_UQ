@@ -73,9 +73,9 @@ Before making that claim, tomorrow's cluster run must resolve these differences:
 - current code's authenticated six-dataset classification inventory is
   `classification_dataset_scope: executable_6`; two additional processed directories
   are not executable through the current classification configuration;
-- current regression jobs write to `experiments/results/reg_max/` and use the
-  full outer-training partition; paper-era aggregates now exist only in Git
-  history before `93c4aced` and came from an earlier capped implementation;
+- current full-array regression jobs write to
+  `experiments/results/reproduction_regression/` and use the full outer-training
+  partition; tracked `reg_max` artifacts are pilots or legacy current-code outputs;
 - paper classification and current fork code both configure PCS with 1,000
   bootstraps, but older committed result pickles may predate that implementation
   state and require provenance checks before comparison;
@@ -88,11 +88,15 @@ Before making that claim, tomorrow's cluster run must resolve these differences:
 
 ## Draft ASTRA layer
 
-The root record uses approved draft ASTRA issue #52 and PR #58 semantics:
+The root record uses approved draft ASTRA issue #52, issue #55, and PR #58
+semantics:
 
-- in-file named universes and multiverses;
-- `artifact#multiverse` projection;
-- concrete output `target` paths.
+- in-file named universes;
+- declared immutable source evidence references;
+- concrete targets only for outputs that are actually materialized or executable.
+
+No active multiverse or artifact-projection field is declared; unsupported designs
+remain prose rather than fake graph nodes.
 
 Released `astra-tools` may reject those fields. That expected rejection is not a
 scientific failure and must not be hidden. Parse the YAML, audit graph references,

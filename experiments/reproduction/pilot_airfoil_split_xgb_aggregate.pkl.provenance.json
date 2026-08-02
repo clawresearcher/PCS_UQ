@@ -1,11 +1,11 @@
 {
   "schema": "pcs-uq-strict-aggregate-provenance-v2",
-  "output_id": "regression_current_aggregate",
+  "output_id": "pilot_airfoil_aggregate",
   "family": "regression",
   "artifact_kind": "metrics",
-  "collection_hash": "sha256:37bba42b2c0dd973d469dc0bc5776536cf880a466eb50527ad560bc66a3e507a",
+  "collection_hash": "sha256:75673e481249a3e5e3743ba450178dd74d25f74ab5dba08c6f8d9f6074a5b603",
   "universe_hash": "sha256:ab253875f8fbe5f43deb0c4ed4cf9d075e165adfa1f95e5f744253a341647f04",
-  "producer_contract_hash": "sha256:f3514c2077643a6925604383013837bbf1ec2b451292b1d25917e59830032ab2",
-  "producer_revision": "75481c844e15123ae01b09d5574dba68154a6cd6",
-  "aggregate_hash": "sha256:ed9b693c22b91f5fc46920557ba5c3ad3674335dcf6eb00fe4dc86a6a8fd9886"
+  "producer_contract_hash": "sha256:aa314cbe9920ea9b013eb308354518246e3677c45f52f61b027c98b97cefcc1f",
+  "producer_revision": "f90e1dc84a82c22a8a0cac371216c648a878600b",
+  "aggregate_hash": "sha256:332153053cebea041838f82b854807145951f7644d76e8fd60e5100b1dcf850d"
 }

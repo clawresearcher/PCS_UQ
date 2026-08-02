@@ -16,8 +16,8 @@
     785,
     786
   ],
-  "current_collection_hash": "sha256:37bba42b2c0dd973d469dc0bc5776536cf880a466eb50527ad560bc66a3e507a",
-  "current_aggregate_sha256": "ed9b693c22b91f5fc46920557ba5c3ad3674335dcf6eb00fe4dc86a6a8fd9886",
+  "current_collection_hash": "sha256:75673e481249a3e5e3743ba450178dd74d25f74ab5dba08c6f8d9f6074a5b603",
+  "current_aggregate_sha256": "332153053cebea041838f82b854807145951f7644d76e8fd60e5100b1dcf850d",
   "historical_source": {
     "revision": "c06235de065095b8f9bf568c8f515e81a485b87b",
     "path": "experiments/results/regression/aggregated_results/all_results_train_size_0.8.pkl"

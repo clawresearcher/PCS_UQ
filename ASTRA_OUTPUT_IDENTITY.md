@@ -79,9 +79,11 @@ current runners do not parameterize every declared decision or provide
 collision-free storage for that product.
 
 `experiments/manifests/astra_universes.json` is the generated runtime projection
-of the ASTRA decisions plus immutable repository-origin metadata. `astra.yaml`
-remains the authoring authority; release verification regenerates and compares the
-projection before publishing evidence.
+of ASTRA decisions plus immutable repository-origin metadata. `astra.yaml` remains
+the authoring authority; release verification regenerates and compares this file.
+Draft source-qualified evidence references are immutable selectors, while concrete
+`target` values are local paths or immutable URLs. No multiverse is currently
+materialized or assigned a collection hash.
 
 ## Aggregate materializations
 

@@ -166,7 +166,7 @@ outputs:
       - pcs_bootstraps
       - prediction_check_k
       - calibration_geometry
-    target: experiments/results/reg_max/
+    target: experiments/results/reproduction_regression
     recipe:
       command: >-
         python -m experiments.scripts.run_manifest_task
@@ -185,7 +185,7 @@ outputs:
       - subgroup_feature_scope
       - subgroup_construction
       - subgroup_width_normalization
-    target: experiments/results/reg_max/
+    target: experiments/results/reproduction_regression
     recipe:
       command: >-
         python -m experiments.scripts.run_manifest_task
@@ -200,8 +200,8 @@ outputs:
       cannot recreate it without the corresponding historical per-seed artifacts,
       so this output is comparison-only evidence, not a current local target.
     inputs: [historical_results:experiments/results/regression/aggregated_results/all_results_train_size_0.8.pkl, paper_protocol]
-    decisions: [training_cap, seed_policy, seed_completion_policy, seed_aggregation]
-    target: historical_results:experiments/results/regression/aggregated_results/all_results_train_size_0.8.pkl
+    decisions: [training_cap, seed_aggregation]
+    target: https://github.com/clawresearcher/PCS_UQ/blob/c06235de065095b8f9bf568c8f515e81a485b87b/experiments/results/regression/aggregated_results/all_results_train_size_0.8.pkl
 
   - id: subgroup_aggregate
     label: "Historical aggregated regression subgroup metrics"
@@ -211,39 +211,39 @@ outputs:
       It was deleted from the current tree and is comparison-only evidence.
       Its earlier aggregation accepted available cases and skipped missing cells.
     inputs: [historical_results:experiments/results/regression/aggregated_results/all_subgroup_results_train_size_0.8.pkl, paper_protocol]
-    decisions: [training_cap, subgroup_width_normalization, seed_policy, seed_completion_policy, seed_aggregation]
-    target: historical_results:experiments/results/regression/aggregated_results/all_subgroup_results_train_size_0.8.pkl
+    decisions: [training_cap, subgroup_width_normalization, seed_aggregation]
+    target: https://github.com/clawresearcher/PCS_UQ/blob/c06235de065095b8f9bf568c8f515e81a485b87b/experiments/results/regression/aggregated_results/all_subgroup_results_train_size_0.8.pkl
 
   - id: regression_current_aggregate
-    label: "Current reg_max aggregate"
+    label: "Future full-array regression aggregate"
     type: data
     description: |
-      Aggregate produced from current uncapped reg_max per-seed artifacts. It is
-      a future cluster output and is not interchangeable with the committed
+      Aggregate produced from the isolated `reproduction_regression` full-array
+      root. It is a future cluster output and is not interchangeable with the
       paper-era regression aggregate.
     inputs: [regression_completed_rows, regression_completion_report]
     decisions: [training_cap, seed_policy, seed_completion_policy, seed_aggregation]
-    target: experiments/results/reg_max/aggregated_results/all_results_train_size_0.8.pkl
+    target: experiments/results/reproduction_regression/aggregated_results/all_results_train_size_0.8.pkl
     recipe:
       command: >-
         python -m experiments.scripts.aggregate_complete --family regression
         --completed-rows experiments/reproduction/regression_completed_rows.csv
         --report experiments/reproduction/regression_completed_rows.json
-        --output experiments/results/reg_max/aggregated_results/all_results_train_size_0.8.pkl
+        --output experiments/results/reproduction_regression/aggregated_results/all_results_train_size_0.8.pkl
 
   - id: subgroup_current_aggregate
-    label: "Current reg_max subgroup aggregate"
+    label: "Future full-array regression subgroup aggregate"
     type: data
-    description: "Future aggregate from the current uncapped subgroup jobs."
+    description: "Future aggregate from the isolated reproduction_regression subgroup jobs."
     inputs: [regression_completed_rows, regression_completion_report]
     decisions: [training_cap, subgroup_width_normalization, seed_policy, seed_completion_policy, seed_aggregation]
-    target: experiments/results/reg_max/aggregated_results/all_subgroup_results_train_size_0.8.pkl
+    target: experiments/results/reproduction_regression/aggregated_results/all_subgroup_results_train_size_0.8.pkl
     recipe:
       command: >-
         python -m experiments.scripts.aggregate_complete --family regression --subgroups
         --completed-rows experiments/reproduction/regression_completed_rows.csv
         --report experiments/reproduction/regression_completed_rows.json
-        --output experiments/results/reg_max/aggregated_results/all_subgroup_results_train_size_0.8.pkl
+        --output experiments/results/reproduction_regression/aggregated_results/all_subgroup_results_train_size_0.8.pkl
 
   - id: regression_main_figure
     label: "Paper regression width figure"
@@ -260,7 +260,6 @@ outputs:
       - baseline_selection
       - marginal_width_normalization
       - figure_execution_mode
-    target: experiments/notebooks/viz_reg.ipynb
 
   - id: subgroup_figures
     label: "Regression subgroup figures"
@@ -274,7 +273,6 @@ outputs:
       - subgroup_report_roster
       - subgroup_display_selection
       - figure_execution_mode
-    target: experiments/notebooks/subgroup_reg_viz.ipynb
 
   - id: classification_seed_metrics
     label: "Per-seed multiclass metrics"
@@ -298,7 +296,7 @@ outputs:
       - classification_score
       - classification_size_normalization
       - empty_set_policy
-    target: experiments/results/class_max/
+    target: experiments/results/reproduction_classification
     recipe:
       command: >-
         python -m experiments.scripts.run_manifest_task
@@ -313,13 +311,13 @@ outputs:
       verifies the completion collection and every artifact hash before reading.
     inputs: [classification_completed_rows, classification_completion_report]
     decisions: [seed_policy, seed_completion_policy, seed_aggregation, empty_set_policy, classification_size_normalization]
-    target: experiments/results/class_max/aggregated_results/all_results_train_size_0.8.pkl
+    target: experiments/results/reproduction_classification/aggregated_results/all_results_train_size_0.8.pkl
     recipe:
       command: >-
         python -m experiments.scripts.aggregate_complete --family classification
         --completed-rows experiments/reproduction/classification_completed_rows.csv
         --report experiments/reproduction/classification_completed_rows.json
-        --output experiments/results/class_max/aggregated_results/all_results_train_size_0.8.pkl
+        --output experiments/results/reproduction_classification/aggregated_results/all_results_train_size_0.8.pkl
 
   - id: classification_figure
     label: "Paper multiclass set-size figure"
@@ -334,7 +332,6 @@ outputs:
       - classification_report_roster
       - baseline_selection
       - figure_execution_mode
-    target: experiments/notebooks/viz_class.ipynb
 
   - id: ablation_seed_metrics
     label: "Regression ablation per-seed metrics"
@@ -364,7 +361,6 @@ outputs:
       claimed.
     inputs: [ablation_seed_metrics, paper_protocol]
     decisions: [ablation_family, figure_execution_mode]
-    target: experiments/notebooks/viz_ablation.ipynb
 
   - id: regression_completed_rows
     label: "Authenticated regression collection rows"
@@ -465,6 +461,13 @@ outputs:
     inputs: [pilot_airfoil_completion_report]
     decisions: [seed_aggregation]
     target: experiments/reproduction/pilot_airfoil_split_xgb_aggregate.pkl
+    recipe:
+      command: >-
+        python -m experiments.scripts.aggregate_complete --family regression
+        --completed-rows experiments/reproduction/pilot_airfoil_split_xgb_completed_rows.csv
+        --report experiments/reproduction/pilot_airfoil_split_xgb_completed_rows.json
+        --output experiments/reproduction/pilot_airfoil_split_xgb_aggregate.pkl
+        --output-id pilot_airfoil_aggregate
 
   - id: pilot_airfoil_subgroup_aggregate
     label: "Authenticated Airfoil subgroup aggregate"
@@ -473,6 +476,13 @@ outputs:
     inputs: [pilot_airfoil_completion_report]
     decisions: [seed_aggregation, subgroup_width_normalization]
     target: experiments/reproduction/pilot_airfoil_split_xgb_subgroup_aggregate.pkl
+    recipe:
+      command: >-
+        python -m experiments.scripts.aggregate_complete --family regression --subgroups
+        --completed-rows experiments/reproduction/pilot_airfoil_split_xgb_completed_rows.csv
+        --report experiments/reproduction/pilot_airfoil_split_xgb_completed_rows.json
+        --output experiments/reproduction/pilot_airfoil_split_xgb_subgroup_aggregate.pkl
+        --output-id pilot_airfoil_subgroup_aggregate
 
   - id: pilot_airfoil_historical_comparison
     label: "Airfoil current-versus-historical comparison"
@@ -484,7 +494,7 @@ outputs:
 
 universes:
   - id: historical_repository_regression
-    description: "Historical repository regression implementation corresponding to archived aggregate artifacts."
+    description: "Historical implementation context; archived aggregates span methods and available seed cells and are not materializations of this single PCS configuration."
     decisions:
       regression_dataset_scope: paper_17
       classification_dataset_scope: paper_6

@@ -19,7 +19,7 @@ A one-seed check is not a paper reproduction verdict.
 
 A complete authenticated ten-seed Airfoil split-conformal/XGBoost panel also ran
 for seeds 777-786. Its strict collection hash is
-`sha256:37bba42b2c0dd973d469dc0bc5776536cf880a466eb50527ad560bc66a3e507a`.
+`sha256:75673e481249a3e5e3743ba450178dd74d25f74ab5dba08c6f8d9f6074a5b603`.
 The current aggregate matches historical coverage exactly; width statistics differ
 only around `1e-6`. See
 `experiments/reproduction/pilot_airfoil_split_xgb_comparison.json`. Airfoil has
@@ -59,10 +59,11 @@ python -m experiments.scripts.run_manifest_task \
 On Slurm, submit the exact array rather than rebuilding the shell matrix:
 
 ```bash
-export PCS_UQ_RESULTS_ROOT=experiments/results/reproduction_main
+export PCS_UQ_RESULTS_ROOT=experiments/results/reproduction_regression
 export PCS_UQ_TASKS=experiments/manifests/regression_tasks.csv
 sbatch --array=0-12579 experiments/scripts/submit_manifest_array.sh
 
+export PCS_UQ_RESULTS_ROOT=experiments/results/reproduction_classification
 export PCS_UQ_TASKS=experiments/manifests/classification_tasks.csv
 sbatch --array=0-1019 experiments/scripts/submit_manifest_array.sh
 ```
@@ -78,14 +79,14 @@ Do not aggregate or compare figures until these commands succeed:
 python experiments/scripts/reproduction_contract.py collect \
   --family regression \
   --inventory experiments/manifests/regression_tasks.csv \
-  --results-root experiments/results/reg_max \
+  --results-root experiments/results/reproduction_regression \
   --require-subgroups \
   --output experiments/reproduction/regression_completed_rows.csv
 
 python experiments/scripts/reproduction_contract.py collect \
   --family classification \
   --inventory experiments/manifests/classification_tasks.csv \
-  --results-root experiments/results/class_max \
+  --results-root experiments/results/reproduction_classification \
   --output experiments/reproduction/classification_completed_rows.csv
 ```
 
