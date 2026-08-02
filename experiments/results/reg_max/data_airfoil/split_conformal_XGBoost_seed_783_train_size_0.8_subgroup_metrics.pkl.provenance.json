@@ -1,0 +1,22 @@
+{
+  "schema": "pcs-uq-artifact-provenance-v1",
+  "task_hash": "sha256:5e724285c2e09d6a30ff130a8700681a9bbdb5bd71e257b07133c6e656861819",
+  "task": {
+    "task_id": "6",
+    "family": "regression",
+    "dataset": "data_airfoil",
+    "method": "split_conformal",
+    "method_name": "split_conformal_XGBoost",
+    "estimator": "XGBoost",
+    "seed": "783",
+    "train_size": "0.8"
+  },
+  "inventory_hash": "sha256:10cb6bdc1e2ff2c99e2826f9f38595e2f6f4a7b4a3509730f90277ee18716a27",
+  "contract_hash": "sha256:f7048d1f71fa8b9ef3eb8027ad8ca0ab56189611c707489a59548baa22ffbc00",
+  "scientific_source_hash": "sha256:1f6d9d54b84681980c3580ba3e424d2be7664ec0c9e1d0b3d20035e715614cd8",
+  "universe_id": "current_repository",
+  "universe_hash": "sha256:e8df762c58d5537336f6eccc775146585d06b1b77ae43d99aa304623c57bbb56",
+  "producer_revision": "8e69dac2d778c8e4d7bf75ee9c4930b29afec49f",
+  "artifact_kind": "subgroup_metrics",
+  "artifact_hash": "sha256:5ebdc25bbca7e9a6a45206c99fce9c2983a43856f77c852e8f0ca31b2e056a49"
+}

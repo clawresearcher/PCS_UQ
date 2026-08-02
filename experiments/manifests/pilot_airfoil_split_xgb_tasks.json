@@ -1,10 +1,10 @@
 {
-  "contract_sha256": "d214e775dccdc9a34a963f137c425c4be9332b06657ad3fdabf3737693ce4da1",
+  "contract_sha256": "f7048d1f71fa8b9ef3eb8027ad8ca0ab56189611c707489a59548baa22ffbc00",
   "family": "regression",
   "identity_schema": "pcs-uq-identity-v1",
   "parent_inventory": "experiments/manifests/regression_tasks.csv",
   "parent_inventory_sha256": "272ce10dc668abbc845848824766436c5cc5cff3a57bf65c4ac2a6f7da84f2e4",
-  "repository_revision": "8bf1d76419c405a6d2e321ec7c982dab39d1e761",
+  "repository_revision": "8e69dac2d778c8e4d7bf75ee9c4930b29afec49f",
   "schema": "pcs-uq-task-inventory-v2",
   "scientific_source_sha256": "1f6d9d54b84681980c3580ba3e424d2be7664ec0c9e1d0b3d20035e715614cd8",
   "seeds": [

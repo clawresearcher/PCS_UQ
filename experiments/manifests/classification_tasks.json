@@ -1,9 +1,9 @@
 {
   "schema": "pcs-uq-task-inventory-v2",
   "family": "classification",
-  "repository_revision": "8bf1d76419c405a6d2e321ec7c982dab39d1e761",
+  "repository_revision": "8e69dac2d778c8e4d7bf75ee9c4930b29afec49f",
   "scientific_source_sha256": "1f6d9d54b84681980c3580ba3e424d2be7664ec0c9e1d0b3d20035e715614cd8",
-  "contract_sha256": "d214e775dccdc9a34a963f137c425c4be9332b06657ad3fdabf3737693ce4da1",
+  "contract_sha256": "f7048d1f71fa8b9ef3eb8027ad8ca0ab56189611c707489a59548baa22ffbc00",
   "task_count": 1020,
   "task_inventory": "classification_tasks.csv",
   "task_inventory_sha256": "8527209d8161d2122ed65cd3127562488e1ea8ebc8e61d3f0e25551821ed19f1",

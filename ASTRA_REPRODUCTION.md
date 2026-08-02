@@ -17,6 +17,15 @@ The metrics, hashes, and one sanity comparison against the deleted historical
 regression aggregate are recorded in `experiments/reproduction/local_pilot.json`.
 A one-seed check is not a paper reproduction verdict.
 
+A complete authenticated ten-seed Airfoil split-conformal/XGBoost panel also ran
+for seeds 777-786. Its strict collection hash is
+`sha256:1b3644220f961ac50a383220c99343c5869ad0e69928175225823ba226639f89`.
+The current aggregate matches historical coverage exactly; width statistics differ
+only around `1e-6`. See
+`experiments/reproduction/pilot_airfoil_split_xgb_comparison.json`. This remains a
+mixed-protocol comparison because the current runner is uncapped while the
+historical run used the paper-era 5,000-row cap.
+
 ## Frozen task matrices
 
 The current repository submitters expand to:

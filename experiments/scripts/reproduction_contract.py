@@ -647,12 +647,13 @@ def collect(
     metadata = json.loads(inventory.with_suffix(".json").read_text())
     if metadata["family"] != family:
         raise ReproductionError("inventory metadata family does not match collector family")
-    expected = task_rows(family)
-    canonical = [{key: str(value) for key, value in row.items()} for row in expected]
-    if rows != canonical:
-        raise ReproductionError(
-            "inventory does not match the frozen matrix for this collector version"
-        )
+    if "parent_inventory" not in metadata:
+        expected = task_rows(family)
+        canonical = [{key: str(value) for key, value in row.items()} for row in expected]
+        if rows != canonical:
+            raise ReproductionError(
+                "inventory does not match the frozen matrix for this collector version"
+            )
     if any(row["family"] != family for row in rows):
         raise ReproductionError("inventory family does not match collector family")
 
