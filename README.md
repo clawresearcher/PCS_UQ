@@ -44,3 +44,15 @@ pcs.predict(X) # generate prediction intervals/sets
 ```
 
 To run experiments from the paper, run the corresponding shell script in ``experiments/scripts``. Then call ``python experiments/scripts/agg_results.py``.
+
+## ASTRA scientific interface
+
+`astra.yaml` describes the tabular paper pipeline from committed processed
+benchmark matrices and subgroup artifacts through seeded fitting/calibration,
+per-run metrics, aggregation, notebooks, and figures. Its decisions and rationale
+were reconciled against arXiv:2505.08784v3.
+
+The record intentionally uses approved draft ASTRA multiverse and output-target
+fields. See `ASTRA_RFC_NOTES.md` for known paper/code differences that must be
+resolved before claiming a cluster reproduction, and for why released ASTRA
+validation is expected to reject the draft surface.

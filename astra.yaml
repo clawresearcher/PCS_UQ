@@ -1,0 +1,777 @@
+# ASTRA Analysis Specification
+# Draft ASTRA RFCs #52 and PR #58 are used for in-file universes,
+# multiverses, artifact projection, and concrete output targets.
+
+id: pcs_uq_paper_experiments
+name: "PCS-UQ paper experiments"
+version: "0.0.12"
+description: |
+  Scientific interface for the tabular regression and multiclass classification
+  experiments in PCS-UQ, arXiv:2505.08784v3. The graph starts from the processed
+  benchmark matrices committed in this repository, traces seeded train/test
+  splits, model screening or baseline selection, fitting and calibration,
+  per-seed metrics, aggregation, subgroup analysis, notebooks, and paper figures.
+
+  The paper provides the scientific rationale: explicit prediction-checking,
+  bootstrap perturbations to represent finite-sample stability, OOB calibration
+  for data efficiency, multiplicative calibration for local adaptivity, and
+  globally oracle-selected conformal baselines as a deliberately favorable
+  comparison. Data cleaning choices are outside the paper's uncertainty scope;
+  the committed processed matrices are therefore the executable data boundary.
+
+  Deep-learning experiments and the modified theoretical algorithm are described
+  by the paper but have no corresponding executable pipeline in this repository,
+  so they are registered only as exclusions rather than runnable outputs.
+
+sources:
+  - id: upstream
+    label: "Original PCS_UQ repository"
+    uri: https://github.com/aagarwal1996/PCS_UQ
+    ref: 7d666b1e4b5940d4ad884d86a60ea1f053b45d75
+
+  - id: paper
+    label: "PCS-UQ arXiv v3"
+    uri: https://arxiv.org/e-print/2505.08784v3
+    ref: sha256:35e6af0511027124515be93dd8041a676765fc65fe9bb100350d2fc9bfb6cc1e
+
+inputs:
+  - id: regression_data
+    label: "Processed 17-dataset regression benchmark"
+    type: data
+    description: |
+      For every dataset under experiments/data/regression/data_*/, X.csv and
+      y.csv define the supervised problem; bin_df.pkl and importances.csv encode
+      manually constructed subgroup membership and feature ranking. These bytes,
+      not re-downloading public sources, are the executable reproduction boundary.
+    source: experiments/data/regression/
+
+  - id: classification_data
+    label: "Processed multiclass benchmark"
+    type: data
+    description: |
+      Eight processed directories are committed, but the paper and configured
+      benchmark select six: Chess, Cover Type, Dionis, Isolet, Language, and
+      Yeast. Walking and Helena are retained data but excluded from the paper run.
+    source: experiments/data/classification/
+
+  - id: preprocessing_notebook
+    label: "Regression download, cleaning, encoding, and subgroup notebook"
+    type: analysis
+    description: |
+      Historical notebook recording public data acquisition, categorical
+      encoding, scaling, feature-importance computation, natural-break or
+      quantile subgroup construction, and dataset-specific manual edits.
+      It is not a clean unattended recipe for rebuilding all committed data.
+    source: experiments/notebooks/download_process_data_regression.ipynb
+
+  - id: regression_code
+    label: "Regression methods, configuration, and runners"
+    type: data
+    description: |
+      src/PCS/regression, src/conformal_methods/regression,
+      experiments/configs/regression_*.py, and run_regression_exp.py.
+    source: experiments/scripts/run_regression_exp.py
+
+  - id: classification_code
+    label: "Classification methods, configuration, and runner"
+    type: data
+    description: |
+      src/PCS/classification, conformal classification baselines,
+      experiments/configs/classification_*.py, and run_classification_exp.py.
+    source: experiments/scripts/run_classification_exp.py
+
+  - id: paper_protocol
+    label: "Paper scientific rationale and reporting contract"
+    type: analysis
+    description: |
+      arXiv v3 Sections 3-6 and Appendices S2-S4 define the method rationale,
+      target coverage, benchmark scope, baseline oracle selection, subgroup
+      interpretation, aggregation, and reported figures/tables.
+    source: paper:sections_3_to_6_and_appendices_s2_to_s4
+
+outputs:
+  - id: processed_regression_benchmark
+    label: "Processed regression benchmark bytes"
+    type: data
+    inputs: [regression_data, preprocessing_notebook]
+    decisions: [regression_dataset_scope, preprocessing_boundary, subgroup_construction]
+    target: experiments/data/regression/
+
+  - id: processed_classification_benchmark
+    label: "Processed classification benchmark bytes"
+    type: data
+    inputs: [classification_data]
+    decisions: [classification_dataset_scope, preprocessing_boundary]
+    target: experiments/data/classification/
+
+  - id: data_preparation_record
+    label: "Historical data preparation and subgroup record"
+    type: report
+    description: |
+      Notebook-level record of public-source acquisition, missing-value handling,
+      categorical encoding, feature scaling, random-forest importance ranking,
+      natural-break/manual subgroup cuts, and committed X/y/bin/importance bytes.
+      Because the notebook is stateful and some sources are mutable, this output
+      is historical provenance rather than a guaranteed clean regeneration.
+    inputs: [preprocessing_notebook, regression_data]
+    decisions: [preprocessing_boundary, subgroup_construction]
+    target: experiments/notebooks/download_process_data_regression.ipynb
+
+  - id: regression_seed_metrics
+    label: "Per-seed regression marginal metrics"
+    type: data
+    description: |
+      One pickle per dataset/method/estimator/seed. The outer split reserves 20%
+      for test evaluation. At this fork base, run_regression_exp.py defaults to
+      experiments/results/reg_max and does not apply its declared max_samples
+      argument; historical paper artifacts under experiments/results/regression
+      were produced by earlier code that capped the training partition at 5,000.
+      Method-specific fit/calibration is delegated to the selected implementation.
+    inputs: [processed_regression_benchmark, regression_code, paper_protocol]
+    decisions:
+      - regression_dataset_scope
+      - seed_policy
+      - outer_train_fraction
+      - training_cap
+      - target_coverage
+      - regression_method
+      - estimator
+      - internal_split
+      - pcs_bootstraps
+      - prediction_check_k
+      - calibration_geometry
+    target: experiments/results/reg_max/data_*/*_seed_*_train_size_0.8_metrics.pkl
+    recipe:
+      command: >-
+        python experiments/scripts/run_regression_exp.py --dataset DATASET
+        --seed SEED --UQ_method UQ_METHOD --estimator ESTIMATOR
+        --train_size 0.8
+
+  - id: regression_subgroup_metrics
+    label: "Per-seed regression subgroup metrics"
+    type: data
+    description: |
+      Coverage and width for the top five recorded importance features and each
+      non-null committed subgroup. Width is scaled by the full held-out response
+      range in the implementation, although the paper speaks generically of
+      normalized subgroup width.
+    inputs: [regression_seed_metrics, processed_regression_benchmark]
+    decisions:
+      - subgroup_feature_scope
+      - subgroup_construction
+      - subgroup_width_normalization
+    target: experiments/results/reg_max/data_*/*_seed_*_train_size_0.8_subgroup_metrics.pkl
+    recipe:
+      command: >-
+        python experiments/scripts/run_regression_exp.py --dataset DATASET
+        --seed SEED --UQ_method UQ_METHOD --estimator ESTIMATOR
+        --train_size 0.8
+
+  - id: regression_aggregate
+    label: "Historical aggregated regression metrics"
+    type: data
+    description: |
+      Committed paper-era aggregate under experiments/results/regression. It was
+      produced by earlier 5,000-row-cap code, not by the current reg_max runner.
+      The aggregator computes mean and population SD over available seed pickles
+      and does not certify complete ten-seed coverage.
+    inputs: [regression_data, regression_code, paper_protocol]
+    decisions: [training_cap, seed_policy, seed_completion_policy, seed_aggregation]
+    target: experiments/results/regression/aggregated_results/all_results_train_size_0.8.pkl
+    recipe:
+      command: python experiments/scripts/agg_results.py --task regression --train_size 0.8
+
+  - id: subgroup_aggregate
+    label: "Historical aggregated regression subgroup metrics"
+    type: data
+    description: |
+      Committed paper-era subgroup aggregate produced by earlier capped-run
+      artifacts. Mean and population SD are computed over available files;
+      missing seeds/subgroups are skipped by broad exception handling.
+    inputs: [regression_data, regression_code, paper_protocol]
+    decisions: [training_cap, subgroup_width_normalization, seed_policy, seed_completion_policy, seed_aggregation]
+    target: experiments/results/regression/aggregated_results/all_subgroup_results_train_size_0.8.pkl
+    recipe:
+      command: python experiments/scripts/agg_results.py --task regression --train_size 0.8
+
+  - id: regression_current_aggregate
+    label: "Current reg_max aggregate"
+    type: data
+    description: |
+      Aggregate produced from current uncapped reg_max per-seed artifacts. It is
+      a future cluster output and is not interchangeable with the committed
+      paper-era regression aggregate.
+    inputs: [regression_seed_metrics]
+    decisions: [training_cap, seed_policy, seed_completion_policy, seed_aggregation]
+    target: experiments/results/reg_max/aggregated_results/all_results_train_size_0.8.pkl
+    recipe:
+      command: python experiments/scripts/agg_results.py --task reg_max --train_size 0.8
+
+  - id: subgroup_current_aggregate
+    label: "Current reg_max subgroup aggregate"
+    type: data
+    description: "Future aggregate from the current uncapped subgroup jobs."
+    inputs: [regression_subgroup_metrics]
+    decisions: [training_cap, subgroup_width_normalization, seed_policy, seed_completion_policy, seed_aggregation]
+    target: experiments/results/reg_max/aggregated_results/all_subgroup_results_train_size_0.8.pkl
+    recipe:
+      command: python experiments/scripts/agg_results.py --task reg_max --train_size 0.8
+
+  - id: regression_main_figure
+    label: "Paper regression width figure"
+    type: figure
+    description: |
+      Notebook-rendered marginal normalized-width comparison. Paper v3 reports
+      PCS-OOB, globally oracle-selected split conformal (XGBoost), Studentized
+      conformal (bagged ensemble), and J+aB (XGBoost). The committed visualization
+      notebook does not fully encode that final roster: it includes archived
+      Majority Vote and lacks a direct J+aB plotting path.
+    inputs: [regression_aggregate, paper_protocol]
+    decisions:
+      - regression_report_roster
+      - baseline_selection
+      - marginal_width_normalization
+      - figure_execution_mode
+    target: experiments/notebooks/figures/regression_widths_inset.pdf
+    recipe:
+      command: jupyter nbconvert --execute --to notebook --inplace experiments/notebooks/viz_reg.ipynb
+
+  - id: subgroup_figures
+    label: "Regression subgroup figures"
+    type: figure
+    description: |
+      Notebook-rendered coverage-versus-width panels based on the aggregate
+      subgroup pickle and manually selected display features/categories. The
+      figures are presentation recipes, not a clean batch command.
+    inputs: [subgroup_aggregate, paper_protocol]
+    decisions:
+      - subgroup_report_roster
+      - subgroup_display_selection
+      - figure_execution_mode
+    target: experiments/notebooks/figures/subgroup_*.pdf
+    recipe:
+      command: jupyter nbconvert --execute --to notebook --inplace experiments/notebooks/subgroup_reg_viz.ipynb
+
+  - id: classification_seed_metrics
+    label: "Per-seed multiclass metrics"
+    type: data
+    description: |
+      Per-run prediction-set coverage/size metrics, classwise metrics, and
+      alternate empty-set-to-full metrics. The outer split is stratified. At
+      this fork base the declared max_samples argument is not applied, so current
+      execution uses the full outer-training partition.
+    inputs: [processed_classification_benchmark, classification_code, paper_protocol]
+    decisions:
+      - classification_dataset_scope
+      - seed_policy
+      - outer_train_fraction
+      - training_cap
+      - target_coverage
+      - classification_method
+      - classification_estimator
+      - classification_bootstraps
+      - prediction_check_k
+      - classification_score
+      - classification_size_normalization
+      - empty_set_policy
+    target: experiments/results/classification/data_*/*_seed_*_train_size_0.8_*metrics.pkl
+    recipe:
+      command: >-
+        python experiments/scripts/run_classification_exp.py --dataset DATASET
+        --seed SEED --UQ_method UQ_METHOD --estimator ESTIMATOR
+        --train_size 0.8
+
+  - id: classification_aggregate
+    label: "Aggregated multiclass metrics"
+    type: data
+    description: |
+      Mean and population standard deviation over available primary metric
+      pickles for the configured six datasets. Missing runs are skipped.
+    inputs: [classification_seed_metrics]
+    decisions: [seed_policy, seed_completion_policy, seed_aggregation, empty_set_policy, classification_size_normalization]
+    target: experiments/results/classification/aggregated_results/all_results_train_size_0.8.pkl
+    recipe:
+      command: python experiments/scripts/agg_results_classification.py --task classification --train_size 0.8
+
+  - id: classification_figure
+    label: "Paper multiclass set-size figure"
+    type: figure
+    description: |
+      Notebook-rendered comparison of PCS-OOB, APS, RAPS, Top-K, and archived
+      Majority Vote. Paper interpretation uses globally oracle-selected baseline
+      estimators and reports six datasets.
+    inputs: [classification_aggregate, paper_protocol]
+    decisions:
+      - classification_report_roster
+      - baseline_selection
+      - figure_execution_mode
+    target: experiments/notebooks/figures/classification_widths_new.pdf
+    recipe:
+      command: jupyter nbconvert --execute --to notebook --inplace experiments/notebooks/viz_class.ipynb
+
+  - id: ablation_seed_metrics
+    label: "Regression ablation per-seed metrics"
+    type: data
+    description: |
+      Experiments vary bootstrap count, training fraction, selected-model count,
+      or calibration geometry. The active submit script currently selects only
+      the model-count experiment; other grids are retained as commented history.
+    inputs: [processed_regression_benchmark, regression_code, paper_protocol]
+    decisions:
+      - ablation_family
+      - ablation_dataset_scope
+      - seed_policy
+      - pcs_bootstraps
+      - training_fraction
+      - prediction_check_k
+      - calibration_geometry
+    target: experiments/results/ablation/data_*/*_ablation_metrics.pkl
+    recipe:
+      command: >-
+        python experiments/scripts/ablation_exp.py --dataset DATASET --seed SEED
+        --UQ_method UQ_METHOD --estimator ESTIMATOR --train_size 0.8
+        --n_boot N_BOOT --abl_type ABLATION --train_frac TRAIN_FRAC
+        --n_model TOP_K --calibration_method CALIBRATION
+
+  - id: ablation_figures
+    label: "Paper ablation figures"
+    type: figure
+    description: |
+      Notebook plots for bootstrap budget, data fraction, model-count, and
+      additive-versus-multiplicative calibration sensitivity.
+    inputs: [ablation_seed_metrics, paper_protocol]
+    decisions: [ablation_family, figure_execution_mode]
+    target: experiments/notebooks/figures/ablation_*.pdf
+    recipe:
+      command: jupyter nbconvert --execute --to notebook --inplace experiments/notebooks/viz_ablation.ipynb
+
+  - id: paper_reproduction_record
+    label: "PCS-UQ paper reproduction record"
+    type: report
+    description: |
+      Prospective cluster reproduction record spanning processed benchmark bytes,
+      exact run matrices, completeness checks, aggregates, and paper-figure
+      comparisons. No successful reproduction is claimed by this registration.
+    inputs:
+      - regression_aggregate
+      - subgroup_aggregate
+      - regression_main_figure
+      - subgroup_figures
+      - classification_aggregate
+      - classification_figure
+      - ablation_figures
+    decisions:
+      - seed_completion_policy
+      - paper_alignment_policy
+    target: ASTRA_REPRODUCTION.md
+
+  - id: regression_sensitivity_projection
+    label: "Regression multiverse projection"
+    type: data
+    description: |
+      Draft RFC #52 collection across registered regression protocol alternatives.
+      Declared for tomorrow's reproduction audit; no materialized collection is
+      claimed yet.
+    inputs: [regression_seed_metrics#regression_sensitivity]
+    decisions: [paper_alignment_policy]
+    target: astra-results/regression-sensitivity/
+
+  - id: ablation_projection
+    label: "Registered ablation multiverse"
+    type: data
+    description: |
+      Draft collection across bootstrap, training-fraction, model-count, and
+      calibration alternatives. The repository has only partial historical
+      materialization and the active shell script selects one family at a time.
+    inputs: [ablation_seed_metrics#ablation_sensitivity]
+    decisions: [paper_alignment_policy]
+    target: astra-results/ablation-sensitivity/
+
+universes:
+  - id: paper_regression
+    description: "Paper-v3 regression benchmark interpretation."
+    decisions:
+      regression_dataset_scope: paper_17
+      classification_dataset_scope: paper_6
+      preprocessing_boundary: committed_processed_bytes
+      subgroup_construction: committed_manual_groups
+      seed_policy: paper_777_786
+      outer_train_fraction: train_0_8
+      training_cap: uncapped_current
+      target_coverage: coverage_0_9
+      regression_method: pcs_oob
+      estimator: candidate_pool
+      internal_split: method_specific_paper
+      pcs_bootstraps: bootstrap_1000
+      prediction_check_k: top_1
+      calibration_geometry: multiplicative
+      subgroup_feature_scope: top_5_recorded
+      subgroup_width_normalization: full_test_response_range
+      seed_completion_policy: require_10_for_reproduction
+      seed_aggregation: mean_sd_ddof0
+      regression_report_roster: paper_v3_four
+      baseline_selection: global_test_oracle
+      marginal_width_normalization: full_test_response_range
+      subgroup_report_roster: paper_v3_four
+      subgroup_display_selection: paper_manual_panels
+      classification_method: pcs_oob
+      classification_estimator: candidate_pool
+      classification_bootstraps: bootstrap_1000
+      classification_score: aps
+      classification_size_normalization: class_count
+      empty_set_policy: primary_implementation_default
+      classification_report_roster: paper_v3_four
+      ablation_family: model_count
+      ablation_dataset_scope: four_pilot_datasets
+      training_fraction: full_capped_training
+      figure_execution_mode: historical_notebook
+      paper_alignment_policy: audit_code_paper_differences
+
+  - id: archived_repository
+    description: "Broader archived repository outputs, including methods omitted from v3."
+    decisions:
+      regression_dataset_scope: paper_17
+      classification_dataset_scope: committed_8
+      preprocessing_boundary: committed_processed_bytes
+      subgroup_construction: committed_manual_groups
+      seed_policy: paper_777_786
+      outer_train_fraction: train_0_8
+      training_cap: uncapped_current
+      target_coverage: coverage_0_9
+      regression_method: archived_full_roster
+      estimator: candidate_pool
+      internal_split: method_specific_repository
+      pcs_bootstraps: bootstrap_1000
+      prediction_check_k: top_1
+      calibration_geometry: multiplicative
+      subgroup_feature_scope: top_5_recorded
+      subgroup_width_normalization: full_test_response_range
+      seed_completion_policy: available_case_historical
+      seed_aggregation: mean_sd_ddof0
+      regression_report_roster: repository_notebook_four
+      baseline_selection: repository_selected
+      marginal_width_normalization: full_test_response_range
+      subgroup_report_roster: repository_notebook_four
+      subgroup_display_selection: notebook_manual_panels
+      classification_method: archived_full_roster
+      classification_estimator: candidate_pool
+      classification_bootstraps: bootstrap_1000
+      classification_score: method_specific
+      classification_size_normalization: class_count
+      empty_set_policy: all_four_metric_variants
+      classification_report_roster: repository_notebook_five
+      ablation_family: model_count
+      ablation_dataset_scope: four_pilot_datasets
+      training_fraction: full_capped_training
+      figure_execution_mode: historical_notebook
+      paper_alignment_policy: preserve_archived_outputs
+
+multiverses:
+  - id: regression_sensitivity
+    description: "Method, estimator, split, calibration, and PCS-design sensitivity."
+    decisions:
+      regression_method: "*"
+      estimator: "*"
+      internal_split: "*"
+      pcs_bootstraps: "*"
+      prediction_check_k: "*"
+      calibration_geometry: "*"
+
+  - id: ablation_sensitivity
+    description: "Paper-motivated PCS design ablations."
+    decisions:
+      ablation_family: "*"
+      pcs_bootstraps: "*"
+      training_fraction: "*"
+      prediction_check_k: "*"
+      calibration_geometry: "*"
+
+decisions:
+  regression_dataset_scope:
+    label: "Regression dataset scope"
+    default: paper_17
+    options:
+      paper_17: {label: "Seventeen paper benchmark datasets"}
+
+  classification_dataset_scope:
+    label: "Classification dataset scope"
+    default: paper_6
+    options:
+      paper_6: {label: "Six datasets reported by arXiv v3"}
+      committed_8: {label: "All eight committed processed directories"}
+
+  preprocessing_boundary:
+    label: "Data provenance boundary"
+    default: committed_processed_bytes
+    options:
+      committed_processed_bytes: {label: "Use committed matrices and subgroup artifacts"}
+      rerun_historical_notebook: {label: "Attempt notebook re-download and processing"}
+
+  subgroup_construction:
+    label: "Subgroup construction"
+    default: committed_manual_groups
+    options:
+      committed_manual_groups: {label: "Natural breaks/manual cuts committed in bin_df.pkl"}
+      quantiles_only: {label: "Uniform quantile grouping sensitivity"}
+
+  seed_policy:
+    label: "Outer split seeds"
+    default: paper_777_786
+    options:
+      paper_777_786: {label: "Ten seeds 777 through 786"}
+
+  outer_train_fraction:
+    label: "Outer train/test split"
+    default: train_0_8
+    options:
+      train_0_8: {label: "80% train, 20% held-out test"}
+
+  training_cap:
+    label: "Training-row cap"
+    default: uncapped_current
+    options:
+      first_5000_training_rows: {label: "Historical paper-era first 5,000 rows after outer split"}
+      uncapped_current: {label: "Current fork execution uses the full outer-training partition"}
+
+  target_coverage:
+    label: "Target coverage"
+    default: coverage_0_9
+    options:
+      coverage_0_9: {label: "90% coverage (alpha=0.1)"}
+
+  regression_method:
+    label: "Regression UQ family"
+    default: pcs_oob
+    options:
+      pcs_oob: {label: "PCS with OOB calibration"}
+      pcs_uq: {label: "Original split PCS"}
+      pcs_uq_alt: {label: "PCS with alternate validation split"}
+      split_conformal: {label: "Split conformal"}
+      split_conformal_alt: {label: "Split conformal 75/25 variant"}
+      studentized_conformal: {label: "Studentized conformal"}
+      studentized_conformal_alt: {label: "Studentized 75/25 variant"}
+      majority_vote: {label: "Archived majority-vote baseline"}
+      majority_vote_alt: {label: "Archived majority-vote 75/25 variant"}
+      jackknife_bootstrap: {label: "J+aB baseline"}
+      archived_full_roster: {label: "All implemented/archived families"}
+
+  estimator:
+    label: "Predictive estimator"
+    default: candidate_pool
+    options:
+      candidate_pool: {label: "Configured model candidate pool"}
+      xgboost: {label: "XGBoost"}
+      random_forest: {label: "Random Forest"}
+      extra_trees: {label: "Extra Trees"}
+      adaboost: {label: "AdaBoost"}
+      ols: {label: "Ordinary least squares"}
+      ridge: {label: "Ridge"}
+      lasso: {label: "Lasso"}
+      elastic_net: {label: "Elastic Net"}
+      mlp: {label: "One-hidden-layer MLP"}
+
+  internal_split:
+    label: "Method-internal training/calibration split"
+    default: method_specific_paper
+    options:
+      method_specific_paper: {label: "Paper 50/50 split where required; OOB for PCS"}
+      split_75_25: {label: "75/25 training/calibration sensitivity"}
+      method_specific_repository: {label: "As implemented by each archived method"}
+
+  pcs_bootstraps:
+    label: "PCS bootstrap count"
+    default: bootstrap_1000
+    options:
+      bootstrap_10: {label: "10 bootstraps"}
+      bootstrap_25: {label: "25 bootstraps"}
+      bootstrap_50: {label: "50 bootstraps"}
+      bootstrap_100: {label: "100 bootstraps"}
+      bootstrap_500: {label: "500 bootstraps"}
+      bootstrap_1000: {label: "1,000 bootstraps"}
+
+  prediction_check_k:
+    label: "Number of prediction-checked models retained"
+    default: top_1
+    options:
+      top_1: {label: "Top one model; selected from simulations and five pilots"}
+      top_2: {label: "Top two models"}
+      top_3: {label: "Top three models"}
+      top_4: {label: "Top four models"}
+      top_5: {label: "Top five models"}
+
+  calibration_geometry:
+    label: "PCS interval calibration geometry"
+    default: multiplicative
+    options:
+      multiplicative: {label: "Scale local lower/upper spread multiplicatively"}
+      additive: {label: "Expand every interval by a constant offset"}
+
+  subgroup_feature_scope:
+    label: "Features evaluated for subgroup metrics"
+    default: top_5_recorded
+    options:
+      top_5_recorded: {label: "Top five committed importance-ranked features"}
+      paper_display_feature: {label: "Single manually selected display feature"}
+
+  subgroup_width_normalization:
+    label: "Subgroup width denominator"
+    default: full_test_response_range
+    options:
+      full_test_response_range: {label: "Range of all held-out responses for that seed"}
+      subgroup_response_range: {label: "Range within each displayed subgroup"}
+
+  seed_completion_policy:
+    label: "Missing-seed handling"
+    default: require_10_for_reproduction
+    options:
+      require_10_for_reproduction: {label: "Fail unless all ten seeds are present"}
+      available_case_historical: {label: "Aggregate available files as legacy scripts do"}
+
+  seed_aggregation:
+    label: "Across-seed summary"
+    default: mean_sd_ddof0
+    options:
+      mean_sd_ddof0: {label: "Arithmetic mean and population SD"}
+
+  regression_report_roster:
+    label: "Regression methods shown"
+    default: paper_v3_four
+    options:
+      paper_v3_four: {label: "PCS, split, Studentized ensemble, and J+aB"}
+      repository_notebook_four: {label: "PCS, split, Studentized, and Majority Vote"}
+
+  baseline_selection:
+    label: "Baseline-estimator selection"
+    default: global_test_oracle
+    options:
+      global_test_oracle: {label: "Choose by average test width while maintaining coverage"}
+      repository_selected: {label: "Use the choices encoded in historical notebooks"}
+      per_dataset_oracle: {label: "Separate oracle estimator per dataset"}
+
+  marginal_width_normalization:
+    label: "Marginal interval-width denominator"
+    default: full_test_response_range
+    options:
+      full_test_response_range: {label: "Range of held-out responses for each seed"}
+      raw_width: {label: "Unnormalized interval width"}
+
+  subgroup_report_roster:
+    label: "Subgroup methods shown"
+    default: paper_v3_four
+    options:
+      paper_v3_four: {label: "PCS, split, Studentized ensemble, and J+aB"}
+      repository_notebook_four: {label: "PCS, split, Studentized, and Majority Vote"}
+
+  subgroup_display_selection:
+    label: "Displayed subgroup panels"
+    default: paper_manual_panels
+    options:
+      paper_manual_panels: {label: "Paper-selected natural subgroup panels"}
+      notebook_manual_panels: {label: "Selections currently encoded in notebook"}
+      all_recorded_groups: {label: "Every committed non-null subgroup"}
+
+  classification_method:
+    label: "Multiclass UQ family"
+    default: pcs_oob
+    options:
+      pcs_oob: {label: "PCS OOB classification"}
+      split_conformal_aps: {label: "APS"}
+      split_conformal_raps: {label: "RAPS"}
+      split_conformal_topk: {label: "Top-K"}
+      majority_vote: {label: "Archived majority-vote classifier"}
+      archived_full_roster: {label: "All implemented classification families"}
+
+  classification_estimator:
+    label: "Classification estimator"
+    default: candidate_pool
+    options:
+      candidate_pool: {label: "Configured classification candidate pool"}
+      random_forest: {label: "Random Forest"}
+      extra_trees: {label: "Extra Trees"}
+      adaboost: {label: "AdaBoost"}
+      logistic_regression: {label: "Logistic regression"}
+      hist_gradient_boosting: {label: "Histogram gradient boosting"}
+      mlp: {label: "One-hidden-layer MLP"}
+
+  classification_bootstraps:
+    label: "Classification PCS bootstrap count"
+    default: bootstrap_1000
+    options:
+      bootstrap_500: {label: "500 bootstraps"}
+      bootstrap_1000: {label: "1,000 bootstraps"}
+
+  classification_score:
+    label: "Classification calibration score"
+    default: aps
+    options:
+      aps: {label: "Adaptive Prediction Set cumulative-probability score"}
+      raps: {label: "Regularized APS"}
+      topk: {label: "Rank-based Top-K"}
+      method_specific: {label: "Score implied by selected method"}
+
+  classification_size_normalization:
+    label: "Prediction-set-size denominator"
+    default: class_count
+    options:
+      class_count: {label: "Divide set size by the dataset's class count"}
+      raw_set_size: {label: "Unnormalized number of classes in the set"}
+
+  empty_set_policy:
+    label: "Classification empty prediction-set handling"
+    default: primary_implementation_default
+    options:
+      primary_implementation_default: {label: "Primary metric implementation"}
+      to_full: {label: "Replace empty sets by all classes"}
+      all_four_metric_variants: {label: "Retain marginal/classwise with both policies"}
+
+  classification_report_roster:
+    label: "Classification methods shown"
+    default: paper_v3_four
+    options:
+      paper_v3_four: {label: "PCS, APS, RAPS, and Top-K"}
+      repository_notebook_five: {label: "Paper four plus archived Majority Vote"}
+
+  ablation_family:
+    label: "Ablation family"
+    default: model_count
+    options:
+      bootstrap_count: {label: "Bootstrap-budget sensitivity"}
+      training_fraction: {label: "Data-size sensitivity"}
+      model_count: {label: "Prediction-check top-k sensitivity"}
+      calibration_geometry: {label: "Additive versus multiplicative calibration"}
+
+  ablation_dataset_scope:
+    label: "Ablation dataset scope"
+    default: four_pilot_datasets
+    options:
+      four_pilot_datasets: {label: "CA, Diamond, Parkinsons, and Airfoil"}
+      calibration_seven: {label: "Seven calibration-comparison datasets"}
+
+  training_fraction:
+    label: "Fraction of capped outer-training data used"
+    default: full_capped_training
+    options:
+      frac_0_1: {label: "10%"}
+      frac_0_2: {label: "20%"}
+      frac_0_3: {label: "30%"}
+      frac_0_4: {label: "40%"}
+      frac_0_5: {label: "50%"}
+      frac_0_6: {label: "60%"}
+      frac_0_7: {label: "70%"}
+      frac_0_8: {label: "80%"}
+      frac_0_9: {label: "90%"}
+      full_capped_training: {label: "100%"}
+
+  figure_execution_mode:
+    label: "Figure production mode"
+    default: historical_notebook
+    options:
+      historical_notebook: {label: "Execute committed notebooks in place"}
+      extracted_batch_script: {label: "Future deterministic non-notebook renderer"}
+
+  paper_alignment_policy:
+    label: "Paper/code alignment policy"
+    default: audit_code_paper_differences
+    options:
+      audit_code_paper_differences: {label: "Require explicit reconciliation before claiming reproduction"}
+      preserve_archived_outputs: {label: "Describe repository artifacts without claiming v3 identity"}
