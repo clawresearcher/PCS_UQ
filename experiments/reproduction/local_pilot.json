@@ -19,10 +19,10 @@
       "coverage": 0.8825531914893617,
       "mean_width": 29.587297554641623,
       "mean_width_scaled": 0.6165047831855648,
-      "metrics_sha256": "10a3d9baa31291d0ac7665a570a749fe434016fa4e6fa2787d839c25eb886330",
+      "metrics_sha256": "d73c132da9bd593be7ea4d42494b7843c9ed2c53cfb47a902d9a8238ff2adbd1",
       "subgroup_metrics_sha256": "27fb1bbea0f7473cd6c692461de3a61526e0c9b53f086e373b6891409d2c49a7",
       "historical_aggregate_reference": {
-        "source_revision": "93c4aced0855a19fec3969a2b7ea64e4708436bd^",
+        "source_revision": "c06235de065095b8f9bf568c8f515e81a485b87b",
         "ten_seed_coverage_mean": 0.901872340425532,
         "ten_seed_mean_width_mean": 30.823776270966714,
         "ten_seed_mean_width_scaled_mean": 0.6422690504868876,

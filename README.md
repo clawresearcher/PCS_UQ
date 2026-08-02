@@ -56,4 +56,5 @@ The record intentionally uses approved draft ASTRA multiverse and output-target
 fields. `ASTRA_RFC_NOTES.md` explains known paper/code differences and why released
 ASTRA validation is expected to reject the draft surface. `ASTRA_REPRODUCTION.md`
 contains the frozen cluster matrices, strict completion gates, and the first
-executed local pilot.
+executed local pilot. `ASTRA_OUTPUT_IDENTITY.md` specifies how content hashes,
+universe hashes, and multiverse collection manifests compose.

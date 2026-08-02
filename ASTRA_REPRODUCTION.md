@@ -40,7 +40,7 @@ python experiments/scripts/reproduction_contract.py inventory \
 Run one frozen row locally with:
 
 ```bash
-python experiments/scripts/run_manifest_task.py \
+python -m experiments.scripts.run_manifest_task \
   --inventory experiments/manifests/regression_tasks.csv --task-id 0
 ```
 
@@ -76,15 +76,22 @@ python experiments/scripts/reproduction_contract.py collect \
   --output experiments/reproduction/classification_completed_rows.csv
 ```
 
-The collector fails on the first missing, duplicate, unreadable, empty, or
-non-finite artifact. Only a complete panel gets an atomic completed-row table and
-a hash-bound JSON report.
+The collector fails on the first missing, duplicate, reused, unreadable, malformed,
+out-of-domain, empty, or non-finite artifact. Only a complete panel gets a
+completed-row table and matching hash-bound JSON report. A later failed collection
+removes stale completion claims before validation; publication uses unique staged
+paths so concurrent collectors cannot share a temporary file.
+
+Output hashes are scoped by materialization rather than attached blindly to the
+family-level ASTRA output declaration. See `ASTRA_OUTPUT_IDENTITY.md` for the
+artifact-hash + universe-hash model and canonical multiverse collection hashes.
 
 ## Historical comparison warning
 
 Paper-era aggregate pickles are absent from the current repository. They are
-available in Git history immediately before deletion commit `93c4aced` and are
-registered in `astra.yaml` as comparison-only external evidence. Current
+available at immutable commit `c06235de065095b8f9bf568c8f515e81a485b87b`
+(the parent of deletion commit `93c4aced`) and are registered in `astra.yaml` as
+comparison-only external evidence. Current
 regression code writes uncapped runs to `reg_max`; those bytes are not assumed to
 be equivalent to the historical capped artifacts.
 

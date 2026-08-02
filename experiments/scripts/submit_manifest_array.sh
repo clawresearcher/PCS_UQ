@@ -11,6 +11,6 @@ set -euo pipefail
 : "${SLURM_ARRAY_TASK_ID:?This script must run as a Slurm array task}"
 
 mkdir -p logs
-python experiments/scripts/run_manifest_task.py \
+python -m experiments.scripts.run_manifest_task \
   --inventory "$PCS_UQ_TASKS" \
   --task-id "$SLURM_ARRAY_TASK_ID"

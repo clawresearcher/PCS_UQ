@@ -69,7 +69,7 @@ def get_class_median_width(y_true, y_pred, return_scaled=False, empty_set=None):
         return scaled_class_median_widths
     return class_median_widths
 
-def get_all_metrics(y_true, y_pred, empty_set='to_full'):
+def get_all_metrics(y_true, y_pred, empty_set=None):
     return {
         'coverage': get_coverage(y_true, y_pred, empty_set=empty_set),
         'mean_width': get_mean_width(y_true, y_pred, return_scaled=False, empty_set=empty_set),
@@ -79,7 +79,7 @@ def get_all_metrics(y_true, y_pred, empty_set='to_full'):
 
     }
 
-def get_all_class_metrics(y_true, y_pred, empty_set='to_full'):
+def get_all_class_metrics(y_true, y_pred, empty_set=None):
     return {
         'class_coverage': get_class_coverage(y_true, y_pred, empty_set=empty_set),
         'class_mean_width': get_class_mean_width(y_true, y_pred, return_scaled=False, empty_set=empty_set),

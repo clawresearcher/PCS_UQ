@@ -47,16 +47,18 @@ The graph follows:
 
 ## Historical results and current execution
 
-Paper-era aggregate pickles are absent from the current tree; they survive only in
-Git history immediately before deletion commit `93c4aced` and are registered as
-comparison-only evidence through the `historical_results` source. Current runners
-write to `reg_max`, `class_max`, and family-specific ablation directories.
+Paper-era aggregate pickles are absent from the current tree; they survive at
+immutable commit `c06235de065095b8f9bf568c8f515e81a485b87b`, immediately before
+deletion commit `93c4aced`, and are registered as comparison-only evidence through
+the `historical_results` source. Current runners write to `reg_max`, `class_max`,
+and family-specific ablation directories.
 
 The fork now freezes the current shell matrices (12,580 regression and 1,020
-classification tasks), runs those exact rows through a manifest array, and refuses
-to emit completion reports for incomplete/corrupt panels. See
-`ASTRA_REPRODUCTION.md`. A two-task local pilot has run successfully, but neither
-the full matrices nor the paper figures have been reproduced.
+classification tasks), binds execution to the inventory/contract/scientific-source
+hashes, runs those exact rows through a manifest array, and refuses to emit
+completion reports for missing, reused, malformed, corrupt, or out-of-domain
+artifacts. See `ASTRA_REPRODUCTION.md`. A two-task local pilot has run successfully,
+but neither the full matrices nor the paper figures have been reproduced.
 
 ## Known paper/code gaps
 

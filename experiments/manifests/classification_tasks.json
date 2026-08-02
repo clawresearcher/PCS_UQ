@@ -1,11 +1,12 @@
 {
-  "schema": "pcs-uq-task-inventory-v1",
+  "schema": "pcs-uq-task-inventory-v2",
   "family": "classification",
-  "repository_revision": "f8b6f7ce17bc71120e7e2343ecf282c6d9006292",
-  "contract_sha256": "b0213349445d6ffa21ea3dd84a4b21057a12a7585a197c365facc2dd06e26fed",
+  "repository_revision": "ae5026f37f1977ed48aa6f2d6d52bd21d650bdf9",
+  "scientific_source_sha256": "7d82453913a3ffa28da1ed5d93cd9c8eac5d6dd84c7b54b9942323ff9d894106",
+  "contract_sha256": "e9c99862e3061218b7df88b9f0dbcb85d3e63732c89fb7a164accf0c3fa2dfb2",
   "task_count": 1020,
   "task_inventory": "experiments/manifests/classification_tasks.csv",
-  "task_inventory_sha256": "d35f34e7853fedaf3363e3d231b958d483affa992ac1f64f588f502b5e9916d5",
+  "task_inventory_sha256": "8527209d8161d2122ed65cd3127562488e1ea8ebc8e61d3f0e25551821ed19f1",
   "seeds": [
     777,
     778,

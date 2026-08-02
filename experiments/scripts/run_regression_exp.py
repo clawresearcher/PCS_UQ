@@ -5,6 +5,7 @@ from pathlib import Path
 import pickle
 import argparse
 import os
+import tempfile
 
 # Sklearn imports
 from sklearn.model_selection import train_test_split
@@ -82,6 +83,20 @@ def get_subgroup_metrics(
     return all_subgroup_metrics
 
 
+def atomic_pickle_dump(value, path):
+    path = Path(path)
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            pickle.dump(value, handle)
+            handle.flush()
+            os.fsync(handle.fileno())
+        Path(temporary).replace(path)
+    except BaseException:
+        Path(temporary).unlink(missing_ok=True)
+        raise
+
+
 def run_regression_experiments(
     dataset_name,
     seed,
@@ -101,16 +116,22 @@ def run_regression_experiments(
 
     # Create directories if they don't exist
     dataset_path.mkdir(parents=True, exist_ok=True)
-    metrics_file = (
-        f"{dataset_path}/{method_name}_seed_{seed}_train_size_{train_size}_metrics.pkl"
+    metrics_file = dataset_path / (
+        f"{method_name}_seed_{seed}_train_size_{train_size}_metrics.pkl"
+    )
+    subgroup_metrics_file = dataset_path / (
+        f"{method_name}_seed_{seed}_train_size_{train_size}_subgroup_metrics.pkl"
     )
 
-    if os.path.exists(metrics_file):
+    if metrics_file.exists() and subgroup_metrics_file.exists():
         print(
-            f"Metrics file {metrics_file} already exists. Skipping experiment.\n",
+            f"Complete result pair already exists for {method_name}; skipping.\n",
             flush=True,
         )
         return
+    if metrics_file.exists() != subgroup_metrics_file.exists():
+        metrics_file.unlink(missing_ok=True)
+        subgroup_metrics_file.unlink(missing_ok=True)
 
     (
         X_train,
@@ -139,15 +160,6 @@ def run_regression_experiments(
         metrics = get_all_metrics(y_test, y_pred)
     metrics = append_time_metrics(metrics, t0, t1, t2, X_test.shape[0])
     print(f"{method_name}: {metrics}\n", flush=True)
-    # Save metrics as pickle file
-    metrics_file = (
-        f"{dataset_path}/{method_name}_seed_{seed}_train_size_{train_size}_metrics.pkl"
-    )
-    with open(metrics_file, "wb") as f:
-        pickle.dump(metrics, f)
-
-    print("Finished fitting and saving metrics\n", flush=True)
-    print(f"Metrics file: {metrics_file}\n", flush=True)
 
     print("Calculating subgroup metrics\n", flush=True)
 
@@ -157,10 +169,9 @@ def run_regression_experiments(
     )
     print("Finished calculating subgroup metrics\n", flush=True)
     print(all_subgroup_metrics)
-    # Save subgroup metrics
-    subgroup_metrics_file = f"{dataset_path}/{method_name}_seed_{seed}_train_size_{train_size}_subgroup_metrics.pkl"
-    with open(subgroup_metrics_file, "wb") as f:
-        pickle.dump(all_subgroup_metrics, f)
+    atomic_pickle_dump(metrics, metrics_file)
+    atomic_pickle_dump(all_subgroup_metrics, subgroup_metrics_file)
+    print(f"Saved complete result pair: {metrics_file}, {subgroup_metrics_file}\n", flush=True)
 
 
 def agg_results(
@@ -368,4 +379,3 @@ if __name__ == "__main__":
         method_name=method_name,
         train_size=args.train_size,
     )
-    agg_results()

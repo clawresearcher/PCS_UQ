@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Freeze and validate PCS-UQ cluster task matrices and result completeness."""
+"""Freeze and validate PCS-UQ task matrices and result completeness."""
 
 from __future__ import annotations
 
@@ -7,11 +7,17 @@ import argparse
 import csv
 import hashlib
 import json
+import math
+import os
 import pickle
 import subprocess
+import tempfile
+import uuid
 from collections import Counter
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
+
+import numpy as np
 
 SEEDS = tuple(range(777, 787))
 TRAIN_SIZE = "0.8"
@@ -80,6 +86,17 @@ REGRESSION_REDUCED_METHODS = frozenset(
         "pcs_oob_downsample",
     }
 )
+REGRESSION_ESTIMATOR_NAMED = frozenset(
+    {
+        "split_conformal",
+        "split_conformal_alt",
+        "studentized_conformal",
+        "studentized_conformal_alt",
+        "jackknife_bootstrap",
+        "pcs_oob_fixed_method",
+        "pcs_oob_downsample_fixed_method",
+    }
+)
 REGRESSION_REDUCED_ESTIMATORS = ("XGBoost",)
 CLASSIFICATION_DATASETS = (
     "data_language",
@@ -104,7 +121,40 @@ CLASSIFICATION_ALL_ESTIMATORS = (
     "XGBoost",
 )
 CLASSIFICATION_REDUCED_METHODS = frozenset({"majority_vote", "pcs_oob"})
+CLASSIFICATION_ESTIMATOR_NAMED = frozenset(
+    {"split_conformal_aps", "split_conformal_raps", "split_conformal_topk"}
+)
 CLASSIFICATION_REDUCED_ESTIMATORS = ("HistGradientBoosting",)
+REGRESSION_METRICS = frozenset(
+    {
+        "coverage",
+        "mean_width",
+        "median_width",
+        "mean_width_scaled",
+        "median_width_scaled",
+        "train_time",
+        "pred_time",
+        "scaled_pred_time",
+    }
+)
+CLASSIFICATION_METRICS = frozenset(
+    {
+        "coverage",
+        "mean_width",
+        "median_width",
+        "mean_width_scaled",
+        "median_width_scaled",
+    }
+)
+CLASSIFICATION_CLASS_METRICS = frozenset(
+    {
+        "class_coverage",
+        "class_mean_width",
+        "class_median_width",
+        "class_mean_width_scaled",
+        "class_median_width_scaled",
+    }
+)
 
 
 class ReproductionError(RuntimeError):
@@ -125,61 +175,92 @@ def git_revision(root: Path) -> str:
     ).strip()
 
 
+SCIENTIFIC_SOURCE_PATTERNS = (
+    "src/**/*.py",
+    "experiments/configs/*.py",
+    "experiments/scripts/run_regression_exp.py",
+    "experiments/scripts/run_classification_exp.py",
+    "experiments/data/**/X.csv",
+    "experiments/data/**/y.csv",
+    "experiments/data/**/bin_df.pkl",
+    "experiments/data/**/importances.csv",
+)
+
+
+def repository_tree_hash(root: Path) -> str:
+    """Hash only scientific bytes that determine task outputs."""
+    selected: set[Path] = set()
+    for pattern in SCIENTIFIC_SOURCE_PATTERNS:
+        selected.update(path for path in root.glob(pattern) if path.is_file())
+    digest = hashlib.sha256()
+    for path in sorted(selected, key=lambda item: item.as_posix()):
+        relative = path.relative_to(root).as_posix()
+        digest.update(relative.encode())
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def method_artifact_name(family: str, method: str, estimator: str) -> str:
+    if family == "regression" and method in REGRESSION_ESTIMATOR_NAMED:
+        return f"{method}_{estimator}"
+    if family == "classification" and method in CLASSIFICATION_ESTIMATOR_NAMED:
+        return f"{method}_{estimator}"
+    return method
+
+
 def task_rows(family: str) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     if family == "regression":
-        for method in REGRESSION_METHODS:
-            estimators = (
-                REGRESSION_REDUCED_ESTIMATORS
-                if method in REGRESSION_REDUCED_METHODS
-                else REGRESSION_ALL_ESTIMATORS
-            )
-            for dataset in REGRESSION_DATASETS:
-                for seed in SEEDS:
-                    for estimator in estimators:
-                        method_name = method
-                        if method in {
-                            "pcs_oob_fixed_method",
-                            "pcs_oob_downsample_fixed_method",
-                        }:
-                            method_name = f"{method}_{estimator}"
-                        rows.append(
-                            {
-                                "task_id": len(rows),
-                                "family": family,
-                                "dataset": dataset,
-                                "method": method,
-                                "method_name": method_name,
-                                "estimator": estimator,
-                                "seed": seed,
-                                "train_size": TRAIN_SIZE,
-                            }
-                        )
+        datasets = REGRESSION_DATASETS
+        methods = REGRESSION_METHODS
+        all_estimators = REGRESSION_ALL_ESTIMATORS
+        reduced_methods = REGRESSION_REDUCED_METHODS
+        reduced_estimators = REGRESSION_REDUCED_ESTIMATORS
     elif family == "classification":
-        for method in CLASSIFICATION_METHODS:
-            estimators = (
-                CLASSIFICATION_REDUCED_ESTIMATORS
-                if method in CLASSIFICATION_REDUCED_METHODS
-                else CLASSIFICATION_ALL_ESTIMATORS
-            )
-            for dataset in CLASSIFICATION_DATASETS:
-                for seed in SEEDS:
-                    for estimator in estimators:
-                        rows.append(
-                            {
-                                "task_id": len(rows),
-                                "family": family,
-                                "dataset": dataset,
-                                "method": method,
-                                "method_name": method,
-                                "estimator": estimator,
-                                "seed": seed,
-                                "train_size": TRAIN_SIZE,
-                            }
-                        )
+        datasets = CLASSIFICATION_DATASETS
+        methods = CLASSIFICATION_METHODS
+        all_estimators = CLASSIFICATION_ALL_ESTIMATORS
+        reduced_methods = CLASSIFICATION_REDUCED_METHODS
+        reduced_estimators = CLASSIFICATION_REDUCED_ESTIMATORS
     else:
         raise ReproductionError(f"unsupported family: {family}")
+
+    for method in methods:
+        estimators = reduced_estimators if method in reduced_methods else all_estimators
+        for dataset in datasets:
+            for seed in SEEDS:
+                for estimator in estimators:
+                    rows.append(
+                        {
+                            "task_id": len(rows),
+                            "family": family,
+                            "dataset": dataset,
+                            "method": method,
+                            "method_name": method_artifact_name(
+                                family, method, estimator
+                            ),
+                            "estimator": estimator,
+                            "seed": seed,
+                            "train_size": TRAIN_SIZE,
+                        }
+                    )
     return rows
+
+
+def atomic_write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        Path(temporary).replace(path)
+    except BaseException:
+        Path(temporary).unlink(missing_ok=True)
+        raise
 
 
 def write_inventory(family: str, output: Path, repository: Path) -> None:
@@ -191,9 +272,10 @@ def write_inventory(family: str, output: Path, repository: Path) -> None:
         writer.writeheader()
         writer.writerows(rows)
     metadata = {
-        "schema": "pcs-uq-task-inventory-v1",
+        "schema": "pcs-uq-task-inventory-v2",
         "family": family,
         "repository_revision": git_revision(repository),
+        "scientific_source_sha256": repository_tree_hash(repository),
         "contract_sha256": sha256(Path(__file__).resolve()),
         "task_count": len(rows),
         "task_inventory": str(output),
@@ -201,7 +283,7 @@ def write_inventory(family: str, output: Path, repository: Path) -> None:
         "seeds": list(SEEDS),
         "train_size": TRAIN_SIZE,
     }
-    output.with_suffix(".json").write_text(json.dumps(metadata, indent=2) + "\n")
+    atomic_write_text(output.with_suffix(".json"), json.dumps(metadata, indent=2) + "\n")
     print(
         f"PCS_UQ_INVENTORY_OK family={family} tasks={len(rows)} "
         f"sha256={metadata['task_inventory_sha256']}"
@@ -219,34 +301,75 @@ def load_inventory(path: Path) -> list[dict[str, str]]:
     return rows
 
 
-def metric_path(results_root: Path, row: dict[str, str]) -> Path:
-    return (
-        results_root
-        / row["dataset"]
-        / (
-            f"{row['method_name']}_seed_{row['seed']}_"
-            f"train_size_{row['train_size']}_metrics.pkl"
-        )
+def load_and_bind_inventory(path: Path, repository: Path) -> list[dict[str, str]]:
+    sidecar = path.with_suffix(".json")
+    if not sidecar.is_file():
+        raise ReproductionError(f"missing inventory metadata: {sidecar}")
+    try:
+        metadata = json.loads(sidecar.read_text())
+    except Exception as exc:
+        raise ReproductionError(f"invalid inventory metadata: {sidecar}") from exc
+    required = {
+        "schema",
+        "family",
+        "repository_revision",
+        "scientific_source_sha256",
+        "contract_sha256",
+        "task_count",
+        "task_inventory_sha256",
+    }
+    if not required <= set(metadata):
+        raise ReproductionError(f"incomplete inventory metadata: {sidecar}")
+    if metadata["schema"] != "pcs-uq-task-inventory-v2":
+        raise ReproductionError(f"unsupported inventory schema: {metadata['schema']}")
+    if metadata["task_inventory_sha256"] != sha256(path):
+        raise ReproductionError("task inventory hash does not match metadata")
+    if metadata["family"] not in {"regression", "classification"}:
+        raise ReproductionError("invalid inventory family metadata")
+    if metadata["contract_sha256"] != sha256(Path(__file__).resolve()):
+        raise ReproductionError("inventory was generated by a different contract")
+    # Commit IDs are informational: embedding the commit that contains this
+    # sidecar would be self-referential. Scientific bytes are bound below.
+    current_revision = git_revision(repository)
+    if not metadata["repository_revision"] or not current_revision:
+        raise ReproductionError("missing repository revision identity")
+    if metadata["scientific_source_sha256"] != repository_tree_hash(repository):
+        raise ReproductionError("scientific source tree differs from inventory binding")
+    rows = load_inventory(path)
+    if metadata["task_count"] != len(rows):
+        raise ReproductionError("inventory row count does not match metadata")
+    return rows
+
+
+def artifact_paths(results_root: Path, row: dict[str, str]) -> dict[str, Path]:
+    stem = (
+        f"{row['method_name']}_seed_{row['seed']}_"
+        f"train_size_{row['train_size']}"
     )
+    dataset_root = results_root / row["dataset"]
+    artifacts = {"metrics": dataset_root / f"{stem}_metrics.pkl"}
+    if row["family"] == "regression":
+        artifacts["subgroup_metrics"] = dataset_root / f"{stem}_subgroup_metrics.pkl"
+    else:
+        artifacts.update(
+            {
+                "full_metrics": dataset_root / f"{stem}_full_metrics.pkl",
+                "class_metrics": dataset_root / f"{stem}_class_metrics.pkl",
+                "full_class_metrics": dataset_root / f"{stem}_full_class_metrics.pkl",
+            }
+        )
+    return artifacts
+
+
+def metric_path(results_root: Path, row: dict[str, str]) -> Path:
+    return artifact_paths(results_root, row)["metrics"]
 
 
 def subgroup_path(results_root: Path, row: dict[str, str]) -> Path:
-    metric = metric_path(results_root, row)
-    return metric.with_name(metric.name.replace("_metrics.pkl", "_subgroup_metrics.pkl"))
+    return artifact_paths(results_root, row)["subgroup_metrics"]
 
 
-def finite_scalars(value: Any) -> Iterable[float]:
-    if isinstance(value, dict):
-        for nested in value.values():
-            yield from finite_scalars(nested)
-    elif isinstance(value, (list, tuple)):
-        for nested in value:
-            yield from finite_scalars(nested)
-    elif isinstance(value, (int, float)):
-        yield float(value)
-
-
-def validate_pickle(path: Path) -> str:
+def load_pickle(path: Path) -> dict[str, Any]:
     try:
         with path.open("rb") as handle:
             value = pickle.load(handle)
@@ -254,13 +377,101 @@ def validate_pickle(path: Path) -> str:
         raise ReproductionError(f"cannot load {path}: {exc}") from exc
     if not isinstance(value, dict) or not value:
         raise ReproductionError(f"empty or non-dict artifact: {path}")
-    scalars = list(finite_scalars(value))
-    if scalars:
-        import math
+    return value
 
-        if not all(math.isfinite(item) for item in scalars):
-            raise ReproductionError(f"non-finite metric in {path}")
+
+def finite_numeric(value: Any, path: Path) -> np.ndarray:
+    try:
+        values = np.asarray(value, dtype=float)
+    except (TypeError, ValueError) as exc:
+        raise ReproductionError(f"non-numeric metric in {path}") from exc
+    if values.size == 0 or not np.isfinite(values).all():
+        raise ReproductionError(f"empty or non-finite metric in {path}")
+    return values
+
+
+def require_keys(value: dict[str, Any], expected: frozenset[str], path: Path) -> None:
+    if set(value) != expected:
+        raise ReproductionError(
+            f"wrong metric schema in {path}: expected {sorted(expected)}, got {sorted(value)}"
+        )
+
+
+def validate_marginal(value: dict[str, Any], expected: frozenset[str], path: Path) -> None:
+    require_keys(value, expected, path)
+    for key in expected:
+        values = finite_numeric(value[key], path)
+        if values.size != 1:
+            raise ReproductionError(f"{key} must be scalar in {path}")
+        scalar = float(values.item())
+        if key == "coverage" and not 0 <= scalar <= 1:
+            raise ReproductionError(f"coverage outside [0,1] in {path}")
+        if key != "coverage" and scalar < 0:
+            raise ReproductionError(f"negative {key} in {path}")
+        if key.endswith("_scaled") and scalar > 1 and expected == CLASSIFICATION_METRICS:
+            raise ReproductionError(f"scaled set size outside [0,1] in {path}")
+
+
+def validate_class_metrics(value: dict[str, Any], path: Path) -> None:
+    require_keys(value, CLASSIFICATION_CLASS_METRICS, path)
+    lengths = set()
+    for key in CLASSIFICATION_CLASS_METRICS:
+        values = finite_numeric(value[key], path)
+        lengths.add(values.size)
+        if key == "class_coverage" and not ((values >= 0) & (values <= 1)).all():
+            raise ReproductionError(f"class coverage outside [0,1] in {path}")
+        if key != "class_coverage" and (values < 0).any():
+            raise ReproductionError(f"negative class width in {path}")
+        if key.endswith("_scaled") and (values > 1).any():
+            raise ReproductionError(f"scaled class size outside [0,1] in {path}")
+    if len(lengths) != 1:
+        raise ReproductionError(f"class metric lengths disagree in {path}")
+    if lengths == {0}:
+        raise ReproductionError(f"empty class metrics in {path}")
+
+
+def validate_subgroups(value: dict[str, Any], path: Path) -> None:
+    if not value:
+        raise ReproductionError(f"empty subgroup artifact: {path}")
+    for feature, groups in value.items():
+        if not isinstance(feature, str) or not isinstance(groups, dict) or not groups:
+            raise ReproductionError(f"malformed subgroup feature in {path}")
+        for metrics in groups.values():
+            if not isinstance(metrics, dict):
+                raise ReproductionError(f"malformed subgroup metrics in {path}")
+            required = {
+                "coverage",
+                "mean_width",
+                "median_width",
+                "mean_width_scaled",
+                "median_width_scaled",
+            }
+            if not required <= set(metrics):
+                raise ReproductionError(f"incomplete subgroup metrics in {path}")
+            validate_marginal(
+                {key: metrics[key] for key in required},
+                frozenset(required),
+                path,
+            )
+
+
+def validate_artifact(kind: str, path: Path, family: str) -> str:
+    value = load_pickle(path)
+    if kind in {"metrics", "full_metrics"}:
+        expected = REGRESSION_METRICS if family == "regression" else CLASSIFICATION_METRICS
+        validate_marginal(value, expected, path)
+    elif kind in {"class_metrics", "full_class_metrics"}:
+        validate_class_metrics(value, path)
+    elif kind == "subgroup_metrics":
+        validate_subgroups(value, path)
+    else:
+        raise ReproductionError(f"unknown artifact kind: {kind}")
     return sha256(path)
+
+
+def remove_stale_publication(output: Path) -> None:
+    output.unlink(missing_ok=True)
+    output.with_suffix(".json").unlink(missing_ok=True)
 
 
 def collect(
@@ -271,27 +482,36 @@ def collect(
     require_subgroups: bool,
     repository: Path,
 ) -> None:
-    rows = load_inventory(inventory)
+    remove_stale_publication(output)
+    rows = load_and_bind_inventory(inventory, repository)
+    metadata = json.loads(inventory.with_suffix(".json").read_text())
+    if metadata["family"] != family:
+        raise ReproductionError("inventory metadata family does not match collector family")
     expected = task_rows(family)
     canonical = [{key: str(value) for key, value in row.items()} for row in expected]
     if rows != canonical:
         raise ReproductionError(
             "inventory does not match the frozen matrix for this collector version"
         )
+    if any(row["family"] != family for row in rows):
+        raise ReproductionError("inventory family does not match collector family")
+
     records = []
+    seen_paths: set[Path] = set()
     for row in rows:
-        metric = metric_path(results_root, row)
-        if not metric.is_file():
-            raise ReproductionError(f"missing result: {metric}")
+        artifacts = artifact_paths(results_root, row)
+        if family == "regression" and not require_subgroups:
+            artifacts.pop("subgroup_metrics")
         record = dict(row)
-        record["metrics_path"] = str(metric)
-        record["metrics_sha256"] = validate_pickle(metric)
-        if require_subgroups:
-            subgroup = subgroup_path(results_root, row)
-            if not subgroup.is_file():
-                raise ReproductionError(f"missing subgroup result: {subgroup}")
-            record["subgroup_path"] = str(subgroup)
-            record["subgroup_sha256"] = validate_pickle(subgroup)
+        for kind, path in artifacts.items():
+            resolved = path.resolve()
+            if resolved in seen_paths:
+                raise ReproductionError(f"artifact reused by multiple tasks: {path}")
+            seen_paths.add(resolved)
+            if not path.is_file():
+                raise ReproductionError(f"missing {kind}: {path}")
+            record[f"{kind}_path"] = str(path)
+            record[f"{kind}_sha256"] = validate_artifact(kind, path, family)
         records.append(record)
 
     key_counts = Counter(
@@ -302,28 +522,40 @@ def collect(
         raise ReproductionError("duplicate scientific task key in completed panel")
 
     output.parent.mkdir(parents=True, exist_ok=True)
-    tmp = output.with_suffix(output.suffix + ".tmp")
-    fields = list(records[0])
-    with tmp.open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
-        writer.writeheader()
-        writer.writerows(records)
-    tmp.replace(output)
-    report = {
-        "schema": "pcs-uq-completion-report-v1",
-        "status": "complete",
-        "family": family,
-        "repository_revision": git_revision(repository),
-        "contract_sha256": sha256(Path(__file__).resolve()),
-        "inventory_path": str(inventory),
-        "inventory_sha256": sha256(inventory),
-        "results_root": str(results_root),
-        "task_count": len(records),
-        "completed_rows_path": str(output),
-        "completed_rows_sha256": sha256(output),
-        "require_subgroups": require_subgroups,
-    }
-    output.with_suffix(".json").write_text(json.dumps(report, indent=2) + "\n")
+    token = uuid.uuid4().hex
+    staged_csv = output.parent / f".{output.name}.{token}.tmp"
+    report_path = output.with_suffix(".json")
+    staged_report = report_path.parent / f".{report_path.name}.{token}.tmp"
+    try:
+        fields = list(records[0])
+        with staged_csv.open("w", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
+            writer.writeheader()
+            writer.writerows(records)
+        report = {
+            "schema": "pcs-uq-completion-report-v2",
+            "status": "complete",
+            "family": family,
+            "repository_revision": git_revision(repository),
+            "scientific_source_sha256": repository_tree_hash(repository),
+            "contract_sha256": sha256(Path(__file__).resolve()),
+            "inventory_path": str(inventory),
+            "inventory_sha256": sha256(inventory),
+            "inventory_metadata_sha256": sha256(inventory.with_suffix(".json")),
+            "results_root": str(results_root),
+            "task_count": len(records),
+            "completed_rows_path": str(output),
+            "completed_rows_sha256": sha256(staged_csv),
+            "require_subgroups": require_subgroups,
+        }
+        staged_report.write_text(json.dumps(report, indent=2) + "\n")
+        staged_csv.replace(output)
+        staged_report.replace(report_path)
+    except BaseException:
+        staged_csv.unlink(missing_ok=True)
+        staged_report.unlink(missing_ok=True)
+        remove_stale_publication(output)
+        raise
     print(f"PCS_UQ_COMPLETE family={family} tasks={len(records)}")
 
 

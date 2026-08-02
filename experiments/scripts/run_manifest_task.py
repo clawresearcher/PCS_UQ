@@ -1,38 +1,39 @@
 #!/usr/bin/env python3
-"""Run one frozen PCS-UQ task selected by its task-inventory row."""
+"""Run one hash-bound PCS-UQ task selected by its task-inventory row."""
 
 from __future__ import annotations
 
 import argparse
-import csv
 import subprocess
 import sys
 from pathlib import Path
+
+from experiments.scripts.reproduction_contract import load_and_bind_inventory
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--inventory", type=Path, required=True)
     parser.add_argument("--task-id", type=int, required=True)
+    parser.add_argument("--repository", type=Path, default=Path("."))
     args = parser.parse_args()
 
-    with args.inventory.open(newline="") as handle:
-        rows = list(csv.DictReader(handle))
+    rows = load_and_bind_inventory(args.inventory, args.repository)
     if args.task_id < 0 or args.task_id >= len(rows):
         raise SystemExit(f"task ID outside 0..{len(rows) - 1}: {args.task_id}")
     row = rows[args.task_id]
     if int(row["task_id"]) != args.task_id:
         raise SystemExit("inventory task IDs are not ordered")
 
-    script = (
-        "experiments/scripts/run_regression_exp.py"
+    module = (
+        "experiments.scripts.run_regression_exp"
         if row["family"] == "regression"
-        else "experiments/scripts/run_classification_exp.py"
+        else "experiments.scripts.run_classification_exp"
     )
     command = [
         sys.executable,
         "-m",
-        script.removesuffix(".py").replace("/", "."),
+        module,
         "--dataset",
         row["dataset"],
         "--UQ_method",

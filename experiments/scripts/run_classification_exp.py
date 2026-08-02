@@ -4,6 +4,7 @@ from pathlib import Path
 import os
 import pickle
 import argparse
+import tempfile
 
 # Sklearn imports
 from sklearn.model_selection import train_test_split
@@ -23,6 +24,20 @@ from experiments.configs.classification_consts import (
     VALID_ESTIMATORS,
     SINGLE_CONFORMAL_METHODS,
 )
+
+
+def atomic_pickle_dump(value, path):
+    path = Path(path)
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            pickle.dump(value, handle)
+            handle.flush()
+            os.fsync(handle.fileno())
+        Path(temporary).replace(path)
+    except BaseException:
+        Path(temporary).unlink(missing_ok=True)
+        raise
 
 
 def run_classification_experiments(
@@ -47,16 +62,22 @@ def run_classification_experiments(
     print(f"data created\n", flush=True)
     # Create directories if they don't exist
     dataset_path.mkdir(parents=True, exist_ok=True)
-    metrics_file = (
-        f"{dataset_path}/{method_name}_seed_{seed}_train_size_{train_size}_metrics.pkl"
-    )
+    stem = f"{method_name}_seed_{seed}_train_size_{train_size}"
+    artifact_files = {
+        "metrics": dataset_path / f"{stem}_metrics.pkl",
+        "full_metrics": dataset_path / f"{stem}_full_metrics.pkl",
+        "class_metrics": dataset_path / f"{stem}_class_metrics.pkl",
+        "full_class_metrics": dataset_path / f"{stem}_full_class_metrics.pkl",
+    }
 
-    if os.path.exists(metrics_file):
+    if all(path.exists() for path in artifact_files.values()):
         print(
-            f"Metrics file {metrics_file} already exists. Skipping experiment.\n",
+            f"Complete result set already exists for {method_name}; skipping.\n",
             flush=True,
         )
         return
+    for path in artifact_files.values():
+        path.unlink(missing_ok=True)
 
     (
         X_train,
@@ -77,27 +98,20 @@ def run_classification_experiments(
 
     full_metrics = get_all_metrics(y_test, y_pred, empty_set="to_full")
     full_class_metrics = get_all_class_metrics(y_test, y_pred, empty_set="to_full")
-    metrics = get_all_metrics(y_test, y_pred)
-    class_metrics = get_all_class_metrics(y_test, y_pred)
+    metrics = get_all_metrics(y_test, y_pred, empty_set=None)
+    class_metrics = get_all_class_metrics(y_test, y_pred, empty_set=None)
     print(f"{method_name} metrics: {metrics}\n", flush=True)
     print(f"{method_name} full metrics: {full_metrics}\n", flush=True)
     print(f"{method_name} class metrics: {class_metrics}\n", flush=True)
     print(f"{method_name} full class metrics: {full_class_metrics}\n", flush=True)
 
-    full_metrics_file = f"{dataset_path}/{method_name}_seed_{seed}_train_size_{train_size}_full_metrics.pkl"
-    with open(full_metrics_file, "wb") as f:
-        pickle.dump(full_metrics, f)
-    full_class_metrics_file = f"{dataset_path}/{method_name}_seed_{seed}_train_size_{train_size}_full_class_metrics.pkl"
-    with open(full_class_metrics_file, "wb") as f:
-        pickle.dump(full_class_metrics, f)
-    metrics_file = (
-        f"{dataset_path}/{method_name}_seed_{seed}_train_size_{train_size}_metrics.pkl"
-    )
-    with open(metrics_file, "wb") as f:
-        pickle.dump(metrics, f)
-    class_metrics_file = f"{dataset_path}/{method_name}_seed_{seed}_train_size_{train_size}_class_metrics.pkl"
-    with open(class_metrics_file, "wb") as f:
-        pickle.dump(class_metrics, f)
+    for kind, value in {
+        "full_metrics": full_metrics,
+        "full_class_metrics": full_class_metrics,
+        "metrics": metrics,
+        "class_metrics": class_metrics,
+    }.items():
+        atomic_pickle_dump(value, artifact_files[kind])
 
 
 if __name__ == "__main__":
