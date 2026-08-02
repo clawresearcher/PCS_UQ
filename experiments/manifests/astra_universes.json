@@ -6,7 +6,7 @@
     "base_revision": "7d666b1e4b5940d4ad884d86a60ea1f053b45d75"
   },
   "universes": {
-    "paper_regression": {
+    "historical_repository_regression": {
       "regression_dataset_scope": "paper_17",
       "classification_dataset_scope": "paper_6",
       "preprocessing_boundary": "committed_processed_bytes",

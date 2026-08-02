@@ -135,6 +135,7 @@ if __name__ == "__main__":
         "--estimator", type=str, default="ExtraTrees", help="Estimator to use"
     )
     parser.add_argument("--train_size", type=float, default=0.8, help="Train size")
+    parser.add_argument("--results_dir", type=str, default="experiments/results/class_max")
     args = parser.parse_args()
 
     # Validate UQ method argument
@@ -187,4 +188,5 @@ if __name__ == "__main__":
         uq_method_name=args.UQ_method,
         method_name=method_name,
         train_size=args.train_size,
+        results_dir=args.results_dir,
     )

@@ -1,9 +1,9 @@
 {
   "schema": "pcs-uq-artifact-provenance-v2",
   "output_id": "regression_seed_metrics",
-  "task_hash": "sha256:5e724285c2e09d6a30ff130a8700681a9bbdb5bd71e257b07133c6e656861819",
+  "task_hash": "sha256:c790cbbfe9f016fb63d5b658707bb232950ee0c07d4e686a82dedebe767711a0",
   "task": {
-    "task_id": "6",
+    "task_id": "324",
     "family": "regression",
     "dataset": "data_airfoil",
     "method": "split_conformal",
@@ -12,12 +12,13 @@
     "seed": "783",
     "train_size": "0.8"
   },
-  "inventory_hash": "sha256:10cb6bdc1e2ff2c99e2826f9f38595e2f6f4a7b4a3509730f90277ee18716a27",
-  "contract_hash": "sha256:28518de9d24abd970f835a445a9387683b86e9dccfc38d93ef12adc0c0ccabfe",
-  "scientific_source_hash": "sha256:d5d1536e08760a12995d16c455389b7534f07fd58c9f12dea2ff3a09f89a424a",
+  "inventory_hash": "sha256:d2119cde92e6845a0520506817ac9771033893c4acc76f1ce711b751337a5dd8",
+  "identity_inventory_hash": "sha256:6c6d013133df7dab2173b8a6c843b6979beed450c8d118a4811ca7b597580f5f",
+  "contract_hash": "sha256:d1d546a1942da2968c28572484908639ad7822b141d48059818af2d6d8c4ddd7",
+  "scientific_source_hash": "sha256:4694d894ab3471afce88f8bf413fcf88608d2a55aefc79cf464e70c18ecc79b4",
   "universe_id": "current_repository",
   "universe_hash": "sha256:ab253875f8fbe5f43deb0c4ed4cf9d075e165adfa1f95e5f744253a341647f04",
-  "producer_revision": "357334c03037dc0e9b757390a37541bed9dc9e95",
+  "producer_revision": "75481c844e15123ae01b09d5574dba68154a6cd6",
   "artifact_kind": "metrics",
-  "artifact_hash": "sha256:5297eb1849fc25a0f004b25be727d2dcdedff119a76aad8a43f0405b9e881a58"
+  "artifact_hash": "sha256:8dd20937352668531b311789cbd8e1b9297b97750cfeaa03a199015cba5e15a5"
 }

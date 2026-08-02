@@ -16,8 +16,8 @@
     785,
     786
   ],
-  "current_collection_hash": "sha256:9f6f4565b7d0332815e4e3054c3dba3ae74b24f08ec0498f530f8e62fb7ba639",
-  "current_aggregate_sha256": "224fab5d4eac62e7b6141ba6bd9ffee0b96ae5b7247efec3a03a502e10527cbd",
+  "current_collection_hash": "sha256:37bba42b2c0dd973d469dc0bc5776536cf880a466eb50527ad560bc66a3e507a",
+  "current_aggregate_sha256": "ed9b693c22b91f5fc46920557ba5c3ad3674335dcf6eb00fe4dc86a6a8fd9886",
   "historical_source": {
     "revision": "c06235de065095b8f9bf568c8f515e81a485b87b",
     "path": "experiments/results/regression/aggregated_results/all_results_train_size_0.8.pkl"
@@ -58,5 +58,6 @@
     "mean_width_scaled_std": -6.567927629021197e-08,
     "median_width_scaled_mean": -3.5063078496211375e-08,
     "median_width_scaled_std": -6.438647486874116e-08
-  }
+  },
+  "comparison_note": "The current Airfoil dataset has 1,503 rows, so the historical 5,000-row cap is inactive for this panel; this is a direct numerical comparison for the executed split-conformal/XGBoost protocol."
 }

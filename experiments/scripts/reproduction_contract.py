@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import csv
 import hashlib
 import json
 import math
 import os
 import pickle
+import shutil
 import subprocess
 import tempfile
 import uuid
@@ -373,10 +375,36 @@ def load_inventory(path: Path) -> list[dict[str, str]]:
         rows = list(csv.DictReader(handle))
     if not rows:
         raise ReproductionError("task inventory is empty")
-    expected_ids = [str(index) for index in range(len(rows))]
-    if [row["task_id"] for row in rows] != expected_ids:
-        raise ReproductionError("task inventory IDs are not contiguous and ordered")
+    actual_ids = [row["task_id"] for row in rows]
+    if len(actual_ids) != len(set(actual_ids)):
+        raise ReproductionError("task inventory IDs are not unique")
     return rows
+
+
+def selection_matches(row: dict[str, str], selection: dict[str, str]) -> bool:
+    return all(row.get(key) == str(value) for key, value in selection.items())
+
+
+def validate_child_inventory(
+    path: Path,
+    rows: list[dict[str, str]],
+    metadata: dict[str, Any],
+    repository: Path,
+) -> None:
+    required = {"parent_inventory", "parent_inventory_sha256", "selection"}
+    if not required <= set(metadata):
+        raise ReproductionError("derived inventory metadata is incomplete")
+    parent = Path(metadata["parent_inventory"])
+    if not parent.is_absolute():
+        parent = repository / parent
+    if not parent.is_file() or sha256(parent) != metadata["parent_inventory_sha256"]:
+        raise ReproductionError("parent inventory hash does not match selection metadata")
+    parent_rows = load_and_bind_inventory(parent, repository)
+    expected = [row for row in parent_rows if selection_matches(row, metadata["selection"])]
+    if not expected:
+        raise ReproductionError("derived inventory selection matched no parent tasks")
+    if rows != expected:
+        raise ReproductionError("derived inventory is not the exact declared parent selection")
 
 
 def load_and_bind_inventory(path: Path, repository: Path) -> list[dict[str, str]]:
@@ -417,12 +445,6 @@ def load_and_bind_inventory(path: Path, repository: Path) -> list[dict[str, str]
             raise ReproductionError("missing repository revision identity")
     if metadata["scientific_source_sha256"] != repository_tree_hash(repository):
         raise ReproductionError("scientific source tree differs from inventory binding")
-    if "parent_inventory" in metadata:
-        parent = Path(metadata["parent_inventory"])
-        if not parent.is_absolute():
-            parent = repository / parent
-        if sha256(parent) != metadata.get("parent_inventory_sha256"):
-            raise ReproductionError("parent inventory hash does not match selection metadata")
     expected_universe_hash, _ = universe_identity(repository, metadata["universe_id"])
     if metadata["identity_schema"] != IDENTITY_SCHEMA:
         raise ReproductionError("inventory uses an unsupported identity schema")
@@ -431,6 +453,15 @@ def load_and_bind_inventory(path: Path, repository: Path) -> list[dict[str, str]
     rows = load_inventory(path)
     if metadata["task_count"] != len(rows):
         raise ReproductionError("inventory row count does not match metadata")
+    if "parent_inventory" in metadata:
+        validate_child_inventory(path, rows, metadata, repository)
+    else:
+        expected = [
+            {key: str(value) for key, value in row.items()}
+            for row in task_rows(metadata["family"])
+        ]
+        if rows != expected:
+            raise ReproductionError("root inventory does not match the frozen task matrix")
     return rows
 
 
@@ -448,6 +479,10 @@ def output_id_for(family: str, kind: str) -> str:
     return "classification_seed_metrics"
 
 
+def identity_inventory_hash(metadata: dict[str, Any]) -> str:
+    return metadata.get("parent_inventory_sha256", metadata["task_inventory_sha256"])
+
+
 def provenance_payload(
     row: dict[str, str],
     inventory: Path,
@@ -459,9 +494,10 @@ def provenance_payload(
     return {
         "schema": "pcs-uq-artifact-provenance-v2",
         "output_id": output_id,
-        "task_hash": task_identity(row, metadata["task_inventory_sha256"]),
+        "task_hash": task_identity(row, identity_inventory_hash(metadata)),
         "task": {key: row[key] for key in INVENTORY_FIELDS},
         "inventory_hash": f"sha256:{metadata['task_inventory_sha256']}",
+        "identity_inventory_hash": f"sha256:{identity_inventory_hash(metadata)}",
         "contract_hash": f"sha256:{metadata['contract_sha256']}",
         "scientific_source_hash": f"sha256:{metadata['scientific_source_sha256']}",
         "universe_id": metadata["universe_id"],
@@ -645,6 +681,9 @@ def remove_stale_publication(output: Path) -> None:
     """Explicit cleanup helper; collection failures never delete prior valid evidence."""
     output.unlink(missing_ok=True)
     output.with_suffix(".json").unlink(missing_ok=True)
+    shutil.rmtree(
+        output.with_suffix(output.suffix + ".publication"), ignore_errors=True
+    )
 
 
 def build_collection_manifest(
@@ -668,7 +707,7 @@ def build_collection_manifest(
             expected_members.append(
                 {
                     "output_id": output_id_for(family, kind),
-                    "task_hash": task_identity(row, metadata["task_inventory_sha256"]),
+                    "task_hash": task_identity(row, identity_inventory_hash(metadata)),
                     "artifact_kind": kind,
                 }
             )
@@ -680,6 +719,25 @@ def build_collection_manifest(
         observed_members,
         key=lambda item: (item["output_id"], item["task_hash"], item["artifact_kind"]),
     )
+    expected_keys = {
+        (item["output_id"], item["task_hash"], item["artifact_kind"])
+        for item in expected_members
+    }
+    observed_keys = [
+        (item["output_id"], item["task_hash"], item["artifact_kind"])
+        for item in observed_members
+    ]
+    observed_key_set = set(observed_keys)
+    omitted = [
+        item
+        for item in expected_members
+        if (item["output_id"], item["task_hash"], item["artifact_kind"])
+        not in observed_key_set
+    ]
+    complete = (
+        len(observed_keys) == len(observed_key_set)
+        and observed_key_set == expected_keys
+    )
     universe_hash, universe = universe_identity(repository, metadata["universe_id"])
     return {
         "schema": "pcs-uq-output-collection-v2",
@@ -687,22 +745,16 @@ def build_collection_manifest(
         "universe_hash": universe_hash,
         "universe": universe,
         "inventory_hash": f"sha256:{metadata['task_inventory_sha256']}",
+        "identity_inventory_hash": f"sha256:{identity_inventory_hash(metadata)}",
         "scientific_source_hash": f"sha256:{metadata['scientific_source_sha256']}",
         "contract_hash": f"sha256:{metadata['contract_sha256']}",
         "expected_members": expected_members,
         "observed_members": observed_members,
         "validation": {
-            "status": "complete" if len(expected_members) == len(observed_members) else "incomplete",
+            "status": "complete" if complete else "incomplete",
             "expected_count": len(expected_members),
             "observed_count": len(observed_members),
-            "omitted": [
-                item for item in expected_members if not any(
-                    member["output_id"] == item["output_id"]
-                    and member["task_hash"] == item["task_hash"]
-                    and member["artifact_kind"] == item["artifact_kind"]
-                    for member in observed_members
-                )
-            ],
+            "omitted": omitted,
         },
     }
 
@@ -719,13 +771,6 @@ def collect(
     metadata = json.loads(inventory.with_suffix(".json").read_text())
     if metadata["family"] != family:
         raise ReproductionError("inventory metadata family does not match collector family")
-    if "parent_inventory" not in metadata:
-        expected = task_rows(family)
-        canonical = [{key: str(value) for key, value in row.items()} for row in expected]
-        if rows != canonical:
-            raise ReproductionError(
-                "inventory does not match the frozen matrix for this collector version"
-            )
     if any(row["family"] != family for row in rows):
         raise ReproductionError("inventory family does not match collector family")
 
@@ -782,16 +827,39 @@ def collect(
         observed_members,
     )
     validation = collection_manifest["validation"]
-    if validation["status"] != "complete" or validation["omitted"]:
-        raise ReproductionError("observed artifacts do not match expected collection")
+    if (
+        validation["status"] != "complete"
+        or validation["omitted"]
+        or collection_manifest["expected_members"]
+        != [
+            {
+                "output_id": member["output_id"],
+                "task_hash": member["task_hash"],
+                "artifact_kind": member["artifact_kind"],
+            }
+            for member in collection_manifest["observed_members"]
+        ]
+    ):
+        raise ReproductionError("collection does not contain exactly the expected members")
     universe_hash = collection_manifest["universe_hash"]
     collection_hash = typed_hash("astra-collection-v1", collection_manifest)
 
     output.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = output.with_suffix(output.suffix + ".lock")
+    try:
+        lock_fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError as exc:
+        raise ReproductionError("completion publication is busy") from exc
+    os.close(lock_fd)
     token = uuid.uuid4().hex
-    staged_csv = output.parent / f".{output.name}.{token}.tmp"
-    report_path = output.with_suffix(".json")
-    staged_report = report_path.parent / f".{report_path.name}.{token}.tmp"
+    staged_directory = Path(
+        tempfile.mkdtemp(prefix=f".{output.name}.{token}.", dir=output.parent)
+    )
+    staged_csv = staged_directory / output.name
+    staged_report = staged_directory / output.with_suffix(".json").name
+    publication = output.with_suffix(output.suffix + ".publication")
+    old_publication: Path | None = None
+    publication_installed = False
     try:
         fields = list(records[0])
         with staged_csv.open("w", newline="") as handle:
@@ -819,13 +887,57 @@ def collect(
             "require_subgroups": require_subgroups,
         }
         staged_report.write_text(json.dumps(report, indent=2) + "\n")
-        staged_csv.replace(output)
-        staged_report.replace(report_path)
+        old_publication = None
+        if publication.exists():
+            old_publication = output.parent / f".{publication.name}.{token}.old"
+            publication.replace(old_publication)
+        staged_directory.replace(publication)
+        publication_installed = True
+        report_path = output.with_suffix(".json")
+        for link, target in (
+            (output, publication / output.name),
+            (report_path, publication / report_path.name),
+        ):
+            if link.exists() or link.is_symlink():
+                link.unlink()
+            link.hardlink_to(target)
+        if old_publication is not None:
+            shutil.rmtree(old_publication)
     except BaseException:
         staged_csv.unlink(missing_ok=True)
         staged_report.unlink(missing_ok=True)
+        shutil.rmtree(staged_directory, ignore_errors=True)
+        if publication_installed:
+            shutil.rmtree(publication, ignore_errors=True)
+        if old_publication is not None and old_publication.exists():
+            old_publication.replace(publication)
         raise
+    finally:
+        lock_path.unlink(missing_ok=True)
     print(f"PCS_UQ_COMPLETE family={family} tasks={len(records)}")
+
+
+@contextmanager
+def completion_snapshot(
+    completed_rows_path: Path, report_path: Path
+):
+    lock_path = completed_rows_path.with_suffix(completed_rows_path.suffix + ".lock")
+    lock_fd: int | None = None
+    owns_lock = False
+    try:
+        lock_fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        owns_lock = True
+    except FileExistsError:
+        # A collector holds the lock while swapping the publication. Existing
+        # immutable publication links remain safe to snapshot.
+        pass
+    if lock_fd is not None:
+        os.close(lock_fd)
+    try:
+        yield completed_rows_path.read_bytes(), report_path.read_bytes()
+    finally:
+        if owns_lock:
+            lock_path.unlink(missing_ok=True)
 
 
 def verify_completion_report(
@@ -835,14 +947,19 @@ def verify_completion_report(
     repository: Path,
 ) -> dict[str, Any]:
     try:
-        report = json.loads(report_path.read_text())
+        with completion_snapshot(completed_rows_path, report_path) as (
+            completed_rows_bytes,
+            report_bytes,
+        ):
+            report = json.loads(report_bytes)
     except Exception as exc:
         raise ReproductionError(f"invalid completion report: {report_path}") from exc
     if report.get("schema") != "pcs-uq-completion-report-v3":
         raise ReproductionError("unsupported completion report schema")
     if report.get("status") != "complete" or report.get("family") != family:
         raise ReproductionError("completion report status/family mismatch")
-    if report.get("completed_rows_sha256") != sha256(completed_rows_path):
+    completed_rows_digest = hashlib.sha256(completed_rows_bytes).hexdigest()
+    if report.get("completed_rows_sha256") != completed_rows_digest:
         raise ReproductionError("completed rows differ from completion report")
 
     inventory = Path(report.get("inventory_path", ""))
@@ -861,8 +978,7 @@ def verify_completion_report(
     if report.get("contract_sha256") != sha256(Path(__file__).resolve()):
         raise ReproductionError("completion contract binding differs")
 
-    with completed_rows_path.open(newline="") as handle:
-        completed = list(csv.DictReader(handle))
+    completed = list(csv.DictReader(completed_rows_bytes.decode("utf-8").splitlines()))
     if len(completed) != len(rows):
         raise ReproductionError("completed rows do not match inventory cardinality")
     canonical_rows = [
@@ -872,6 +988,21 @@ def verify_completion_report(
     for expected, observed in zip(canonical_rows, completed, strict=True):
         if any(observed.get(key) != expected[key] for key in INVENTORY_FIELDS):
             raise ReproductionError("completed rows do not match inventory coordinates")
+        expected_task_hash = task_identity(expected, identity_inventory_hash(metadata))
+        for kind in (
+            "metrics",
+            "subgroup_metrics",
+            "full_metrics",
+            "class_metrics",
+            "full_class_metrics",
+        ):
+            hash_key = f"{kind}_sha256"
+            if hash_key not in observed or not observed[hash_key]:
+                continue
+            if observed.get(f"{kind}_task_hash") != expected_task_hash:
+                raise ReproductionError("completed member is attached to the wrong row")
+            if observed.get(f"{kind}_output_id") != output_id_for(family, kind):
+                raise ReproductionError("completed member output identity is malformed")
 
     observed_members = []
     for record in completed:
@@ -900,12 +1031,30 @@ def verify_completion_report(
         bool(report.get("require_subgroups")),
         observed_members,
     )
+    validation = expected_manifest["validation"]
+    if (
+        validation != {
+            "status": "complete",
+            "expected_count": len(expected_manifest["expected_members"]),
+            "observed_count": len(expected_manifest["expected_members"]),
+            "omitted": [],
+        }
+    ):
+        raise ReproductionError("completion manifest does not contain the exact expected panel")
     if report.get("collection_manifest") != expected_manifest:
         raise ReproductionError("completion manifest is not canonical for its inventory")
     if report.get("collection_hash") != typed_hash("astra-collection-v1", expected_manifest):
         raise ReproductionError("collection hash does not match canonical manifest")
-    expected_universe_hash, _ = universe_identity(repository, report["universe_id"])
-    if report.get("universe_hash") != expected_universe_hash:
+    if report.get("universe_id") != metadata["universe_id"]:
+        raise ReproductionError("completion report universe alias differs from inventory")
+    expected_universe_hash, expected_universe = universe_identity(
+        repository, metadata["universe_id"]
+    )
+    if (
+        report.get("universe_hash") != expected_universe_hash
+        or expected_manifest["universe_hash"] != expected_universe_hash
+        or expected_manifest["universe"] != expected_universe
+    ):
         raise ReproductionError("completion report universe differs from ASTRA")
     return report
 

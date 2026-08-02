@@ -240,7 +240,7 @@ def test_manifest_runner_refuses_existing_artifacts(
     )
     from experiments.scripts import run_manifest_task
 
-    with pytest.raises(SystemExit, match="refusing to relabel"):
+    with pytest.raises(SystemExit, match="refusing to overwrite"):
         run_manifest_task.main()
     assert result.read_bytes() == b"stale"
 
@@ -296,6 +296,33 @@ def test_fabricated_completion_report_is_rejected(
         )
 
 
+def test_derived_inventory_must_be_exact_parent_selection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    canonical = contract.task_rows("classification")[:3]
+    monkeypatch.setattr(contract, "task_rows", lambda family: canonical)
+    parent = tmp_path / "parent.csv"
+    parent_metadata = write_inventory(parent, canonical, monkeypatch)
+    child = tmp_path / "child.csv"
+    selected = [dict(canonical[0]), dict(canonical[1])]
+    metadata = write_inventory(child, selected, monkeypatch)
+    metadata.update(
+        {
+            "parent_inventory": str(parent),
+            "parent_inventory_sha256": contract.sha256(parent),
+            "selection": {
+                "dataset": canonical[0]["dataset"],
+                "method": canonical[0]["method"],
+                "estimator": canonical[0]["estimator"],
+            },
+            "contract_sha256": parent_metadata["contract_sha256"],
+        }
+    )
+    child.with_suffix(".json").write_text(json.dumps(metadata))
+    with pytest.raises(contract.ReproductionError, match="exact declared parent selection"):
+        contract.load_and_bind_inventory(child, Path("."))
+
+
 def test_collector_rejects_inventory_drift(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -305,7 +332,7 @@ def test_collector_rejects_inventory_drift(
     rows[0]["seed"] = 999
     inventory = tmp_path / "tasks.csv"
     write_inventory(inventory, rows, monkeypatch)
-    with pytest.raises(contract.ReproductionError, match="frozen matrix"):
+    with pytest.raises(contract.ReproductionError, match="frozen task matrix"):
         contract.collect(
             "classification",
             inventory,

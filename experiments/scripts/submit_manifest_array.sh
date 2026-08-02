@@ -13,4 +13,5 @@ set -euo pipefail
 mkdir -p logs
 python -m experiments.scripts.run_manifest_task \
   --inventory "$PCS_UQ_TASKS" \
-  --task-id "$SLURM_ARRAY_TASK_ID"
+  --task-index "$SLURM_ARRAY_TASK_ID" \
+  --results-root "${PCS_UQ_RESULTS_ROOT:-experiments/results/reproduction_main}"

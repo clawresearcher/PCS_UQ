@@ -129,11 +129,20 @@ def main() -> None:
     atomic_pickle_dump(result, args.output)
     metadata_path = args.output.with_suffix(args.output.suffix + ".provenance.json")
     metadata = {
-        "schema": "pcs-uq-strict-aggregate-v2",
+        "schema": "pcs-uq-strict-aggregate-provenance-v2",
+        "output_id": (
+            "regression_current_subgroup_aggregate"
+            if args.subgroups
+            else "regression_current_aggregate"
+            if args.family == "regression"
+            else "classification_aggregate"
+        ),
         "family": args.family,
         "artifact_kind": kind,
         "collection_hash": completion["collection_hash"],
         "universe_hash": completion["universe_hash"],
+        "producer_contract_hash": file_hash(Path(__file__).resolve()),
+        "producer_revision": completion["repository_revision"],
         "aggregate_hash": file_hash(args.output),
     }
     metadata_path.write_text(json.dumps(metadata, indent=2) + "\n")

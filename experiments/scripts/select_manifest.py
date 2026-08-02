@@ -37,7 +37,6 @@ def main() -> None:
         and row["method"] == args.method
         and row["estimator"] == args.estimator
     ]
-    selected = [dict(row, task_id=str(index)) for index, row in enumerate(selected)]
     if not selected:
         raise SystemExit("selection matched no tasks")
 

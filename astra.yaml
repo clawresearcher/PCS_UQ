@@ -1,6 +1,6 @@
 # ASTRA Analysis Specification
-# Draft ASTRA RFCs #52 and PR #58 are used for in-file universes,
-# multiverses, artifact projection, and concrete output targets.
+# Draft ASTRA RFCs #52 and #55 plus PR #58 are used for in-file universes,
+# declared sources, source-qualified immutable evidence, and concrete output targets.
 
 id: pcs_uq_paper_experiments
 name: "PCS-UQ paper experiments"
@@ -170,7 +170,7 @@ outputs:
     recipe:
       command: >-
         python -m experiments.scripts.run_manifest_task
-        --inventory experiments/manifests/regression_tasks.csv --task-id <TASK_ID>
+        --inventory experiments/manifests/regression_tasks.csv --task-index <TASK_INDEX>
 
   - id: regression_subgroup_metrics
     label: "Per-seed regression subgroup metrics"
@@ -189,7 +189,7 @@ outputs:
     recipe:
       command: >-
         python -m experiments.scripts.run_manifest_task
-        --inventory experiments/manifests/regression_tasks.csv --task-id <TASK_ID>
+        --inventory experiments/manifests/regression_tasks.csv --task-index <TASK_INDEX>
 
   - id: regression_aggregate
     label: "Historical aggregated regression metrics"
@@ -302,7 +302,7 @@ outputs:
     recipe:
       command: >-
         python -m experiments.scripts.run_manifest_task
-        --inventory experiments/manifests/classification_tasks.csv --task-id <TASK_ID>
+        --inventory experiments/manifests/classification_tasks.csv --task-index <TASK_INDEX>
 
   - id: classification_aggregate
     label: "Aggregated multiclass metrics"
@@ -359,13 +359,12 @@ outputs:
     label: "Paper ablation figures"
     type: figure
     description: |
-      Notebook plots for bootstrap budget, data fraction, model-count, and
-      additive-versus-multiplicative calibration sensitivity.
+      Interpretive registration only. The notebook depends on absent aggregate
+      ablation trees, so no executable recipe or materialized figure target is
+      claimed.
     inputs: [ablation_seed_metrics, paper_protocol]
     decisions: [ablation_family, figure_execution_mode]
-    target: experiments/notebooks/figures/
-    recipe:
-      command: jupyter nbconvert --execute --to notebook --inplace experiments/notebooks/viz_ablation.ipynb
+    target: experiments/notebooks/viz_ablation.ipynb
 
   - id: regression_completed_rows
     label: "Authenticated regression collection rows"
@@ -451,31 +450,41 @@ outputs:
       - paper_alignment_policy
     target: ASTRA_REPRODUCTION.md
 
-  - id: regression_sensitivity_projection
-    label: "Unmaterialized regression sensitivity design"
+  - id: pilot_airfoil_completion_report
+    label: "Authenticated Airfoil pilot collection"
     type: report
-    description: |
-      Interpretive declaration only. Current runners and artifact names do not
-      parameterize the full decision Cartesian product, so no executable output or
-      collection hash is claimed. Materialization requires a future constrained
-      task inventory with collision-free coordinates.
-    inputs: [reproduction_contract]
-    decisions: []
-    target: ASTRA_OUTPUT_IDENTITY.md
+    description: "Exact ten-seed split-conformal/XGBoost collection manifest for Airfoil."
+    inputs: [regression_seed_metrics, regression_subgroup_metrics, reproduction_contract]
+    decisions: [seed_policy, seed_completion_policy, paper_alignment_policy]
+    target: experiments/reproduction/pilot_airfoil_split_xgb_completed_rows.json
 
-  - id: ablation_projection
-    label: "Unmaterialized ablation sensitivity design"
+  - id: pilot_airfoil_aggregate
+    label: "Authenticated Airfoil marginal aggregate"
+    type: data
+    description: "Strict ten-seed marginal aggregate plus adjacent producer provenance."
+    inputs: [pilot_airfoil_completion_report]
+    decisions: [seed_aggregation]
+    target: experiments/reproduction/pilot_airfoil_split_xgb_aggregate.pkl
+
+  - id: pilot_airfoil_subgroup_aggregate
+    label: "Authenticated Airfoil subgroup aggregate"
+    type: data
+    description: "Strict ten-seed subgroup aggregate plus adjacent producer provenance."
+    inputs: [pilot_airfoil_completion_report]
+    decisions: [seed_aggregation, subgroup_width_normalization]
+    target: experiments/reproduction/pilot_airfoil_split_xgb_subgroup_aggregate.pkl
+
+  - id: pilot_airfoil_historical_comparison
+    label: "Airfoil current-versus-historical comparison"
     type: report
-    description: |
-      Interpretive declaration only. No multiverse collection has been produced or
-      authenticated; ASTRA_OUTPUT_IDENTITY.md records the required collection model.
-    inputs: [reproduction_contract]
-    decisions: []
-    target: ASTRA_OUTPUT_IDENTITY.md
+    description: "Numerical comparison against the immutable pre-deletion historical aggregate."
+    inputs: [pilot_airfoil_aggregate, historical_results:experiments/results/regression/aggregated_results/all_results_train_size_0.8.pkl]
+    decisions: [paper_alignment_policy]
+    target: experiments/reproduction/pilot_airfoil_split_xgb_comparison.json
 
 universes:
-  - id: paper_regression
-    description: "Paper-v3 regression benchmark interpretation."
+  - id: historical_repository_regression
+    description: "Historical repository regression implementation corresponding to archived aggregate artifacts."
     decisions:
       regression_dataset_scope: paper_17
       classification_dataset_scope: paper_6
@@ -552,30 +561,7 @@ universes:
       figure_execution_mode: historical_notebook
       paper_alignment_policy: current_code_exact
 
-multiverses:
-  - id: regression_sensitivity
-    description: |
-      Interpretive sensitivity design only. Current execution is limited to the
-      frozen current_repository task inventory; this multiverse has no materialized
-      output collection or hash.
-    decisions:
-      regression_method: "*"
-      estimator: "*"
-      internal_split: "*"
-      pcs_bootstraps: "*"
-      prediction_check_k: "*"
-      calibration_geometry: "*"
-
-  - id: ablation_sensitivity
-    description: |
-      Interpretive ablation design only; unsupported combinations and storage
-      collisions are not expanded, executed, or assigned hashes.
-    decisions:
-      ablation_family: "*"
-      pcs_bootstraps: "*"
-      training_fraction: "*"
-      prediction_check_k: "*"
-      calibration_geometry: "*"
+multiverses: []
 
 decisions:
   regression_dataset_scope:

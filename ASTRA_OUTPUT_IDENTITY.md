@@ -83,6 +83,14 @@ of the ASTRA decisions plus immutable repository-origin metadata. `astra.yaml`
 remains the authoring authority; release verification regenerates and compares the
 projection before publishing evidence.
 
+## Aggregate materializations
+
+Strict aggregate pickles are derived artifacts with adjacent provenance JSON. The
+sidecar binds the aggregate bytes to its ASTRA output ID, source collection hash,
+universe hash, aggregate producer contract/revision, and artifact hash. The Airfoil
+pilot aggregate, subgroup aggregate, completion report, and historical comparison
+are registered as explicit evidence outputs in `astra.yaml`.
+
 ## Relationships
 
 Relationships address a materialization reference, not a bare blob hash:

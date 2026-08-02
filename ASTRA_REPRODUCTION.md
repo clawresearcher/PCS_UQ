@@ -19,12 +19,13 @@ A one-seed check is not a paper reproduction verdict.
 
 A complete authenticated ten-seed Airfoil split-conformal/XGBoost panel also ran
 for seeds 777-786. Its strict collection hash is
-`sha256:9f6f4565b7d0332815e4e3054c3dba3ae74b24f08ec0498f530f8e62fb7ba639`.
+`sha256:37bba42b2c0dd973d469dc0bc5776536cf880a466eb50527ad560bc66a3e507a`.
 The current aggregate matches historical coverage exactly; width statistics differ
 only around `1e-6`. See
-`experiments/reproduction/pilot_airfoil_split_xgb_comparison.json`. This remains a
-mixed-protocol comparison because the current runner is uncapped while the
-historical run used the paper-era 5,000-row cap.
+`experiments/reproduction/pilot_airfoil_split_xgb_comparison.json`. Airfoil has
+1,503 rows, so the historical 5,000-row implementation cap is inactive for this
+panel; this is a direct numerical comparison for the executed protocol. It is one
+method/dataset cell, not a full paper reproduction.
 
 ## Frozen task matrices
 
@@ -49,13 +50,16 @@ python experiments/scripts/reproduction_contract.py inventory \
 Run one frozen row locally with:
 
 ```bash
+# Array indices address inventory row positions, while `task_id` remains the stable
+# parent identity carried by derived manifests.
 python -m experiments.scripts.run_manifest_task \
-  --inventory experiments/manifests/regression_tasks.csv --task-id 0
+  --inventory experiments/manifests/regression_tasks.csv --task-index 0
 ```
 
 On Slurm, submit the exact array rather than rebuilding the shell matrix:
 
 ```bash
+export PCS_UQ_RESULTS_ROOT=experiments/results/reproduction_main
 export PCS_UQ_TASKS=experiments/manifests/regression_tasks.csv
 sbatch --array=0-12579 experiments/scripts/submit_manifest_array.sh
 
