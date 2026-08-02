@@ -1,0 +1,11 @@
+task_id,family,dataset,method,method_name,estimator,seed,train_size
+0,regression,data_airfoil,split_conformal,split_conformal_XGBoost,XGBoost,777,0.8
+1,regression,data_airfoil,split_conformal,split_conformal_XGBoost,XGBoost,778,0.8
+2,regression,data_airfoil,split_conformal,split_conformal_XGBoost,XGBoost,779,0.8
+3,regression,data_airfoil,split_conformal,split_conformal_XGBoost,XGBoost,780,0.8
+4,regression,data_airfoil,split_conformal,split_conformal_XGBoost,XGBoost,781,0.8
+5,regression,data_airfoil,split_conformal,split_conformal_XGBoost,XGBoost,782,0.8
+6,regression,data_airfoil,split_conformal,split_conformal_XGBoost,XGBoost,783,0.8
+7,regression,data_airfoil,split_conformal,split_conformal_XGBoost,XGBoost,784,0.8
+8,regression,data_airfoil,split_conformal,split_conformal_XGBoost,XGBoost,785,0.8
+9,regression,data_airfoil,split_conformal,split_conformal_XGBoost,XGBoost,786,0.8

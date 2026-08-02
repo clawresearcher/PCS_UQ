@@ -418,6 +418,12 @@ def load_and_bind_inventory(path: Path, repository: Path) -> list[dict[str, str]
             raise ReproductionError("missing repository revision identity")
     if metadata["scientific_source_sha256"] != repository_tree_hash(repository):
         raise ReproductionError("scientific source tree differs from inventory binding")
+    if "parent_inventory" in metadata:
+        parent = Path(metadata["parent_inventory"])
+        if not parent.is_absolute():
+            parent = repository / parent
+        if sha256(parent) != metadata.get("parent_inventory_sha256"):
+            raise ReproductionError("parent inventory hash does not match selection metadata")
     expected_universe_hash, _ = universe_identity(repository, metadata["universe_id"])
     if metadata["identity_schema"] != IDENTITY_SCHEMA:
         raise ReproductionError("inventory uses an unsupported identity schema")
