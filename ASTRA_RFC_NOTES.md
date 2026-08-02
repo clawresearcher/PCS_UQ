@@ -45,6 +45,19 @@ The graph follows:
 4. available-case legacy aggregation under `experiments/results/*/aggregated_results/`;
 5. notebook-rendered marginal, subgroup, classification, and ablation figures.
 
+## Historical results and current execution
+
+Paper-era aggregate pickles are absent from the current tree; they survive only in
+Git history immediately before deletion commit `93c4aced` and are registered as
+comparison-only evidence through the `historical_results` source. Current runners
+write to `reg_max`, `class_max`, and family-specific ablation directories.
+
+The fork now freezes the current shell matrices (12,580 regression and 1,020
+classification tasks), runs those exact rows through a manifest array, and refuses
+to emit completion reports for incomplete/corrupt panels. See
+`ASTRA_REPRODUCTION.md`. A two-task local pilot has run successfully, but neither
+the full matrices nor the paper figures have been reproduced.
+
 ## Known paper/code gaps
 
 Registration does not imply that the current repository reproduces arXiv v3.
@@ -56,9 +69,8 @@ Before making that claim, tomorrow's cluster run must resolve these differences:
 - paper subgroup figures likewise report J+aB, while historical notebook
   selections may use Majority Vote;
 - current regression jobs write to `experiments/results/reg_max/` and use the
-  full outer-training partition; committed paper-era aggregates under
-  `experiments/results/regression/` came from an earlier 5,000-row-cap path, so
-  those stages must not be silently mixed;
+  full outer-training partition; paper-era aggregates now exist only in Git
+  history before `93c4aced` and came from an earlier capped implementation;
 - paper classification and current fork code both configure PCS with 1,000
   bootstraps, but older committed result pickles may predate that implementation
   state and require provenance checks before comparison;

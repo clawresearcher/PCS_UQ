@@ -1,0 +1,65 @@
+{
+  "schema": "pcs-uq-local-pilot-v1",
+  "status": "partial_pilot_only",
+  "repository_base_revision": "f8b6f7ce17bc71120e7e2343ecf282c6d9006292",
+  "environment": {
+    "python": "3.11",
+    "requirements": "requirements.txt",
+    "notes": "Fresh .venv installation completed successfully on 2026-08-02."
+  },
+  "runs": [
+    {
+      "family": "regression",
+      "dataset": "data_parkinsons",
+      "method": "split_conformal",
+      "estimator": "OLS",
+      "seed": 777,
+      "train_size": 0.8,
+      "status": "completed",
+      "coverage": 0.8825531914893617,
+      "mean_width": 29.587297554641623,
+      "mean_width_scaled": 0.6165047831855648,
+      "metrics_sha256": "10a3d9baa31291d0ac7665a570a749fe434016fa4e6fa2787d839c25eb886330",
+      "subgroup_metrics_sha256": "27fb1bbea0f7473cd6c692461de3a61526e0c9b53f086e373b6891409d2c49a7",
+      "historical_aggregate_reference": {
+        "source_revision": "93c4aced0855a19fec3969a2b7ea64e4708436bd^",
+        "ten_seed_coverage_mean": 0.901872340425532,
+        "ten_seed_mean_width_mean": 30.823776270966714,
+        "ten_seed_mean_width_scaled_mean": 0.6422690504868876,
+        "comparison_note": "A single-seed current run is not a reproduction verdict; values are recorded only as an early sanity comparison."
+      }
+    },
+    {
+      "family": "regression",
+      "dataset": "data_parkinsons",
+      "method": "pcs_oob",
+      "estimator": "XGBoost",
+      "seed": 777,
+      "train_size": 0.8,
+      "status": "local_timeout_before_completion",
+      "observed_progress": "39 of 1000 XGBoost bootstrap models after 10 minutes",
+      "estimated_single_task_runtime": "approximately four hours at observed rate",
+      "artifacts_written": false,
+      "interpretation": "The manifest runner reached the real PCS-OOB fit path. Full PCS execution requires the cluster and cannot be substituted by the cheap local smoke methods."
+    },
+    {
+      "family": "classification",
+      "dataset": "data_yeast",
+      "method": "split_conformal_aps",
+      "estimator": "LogisticRegression",
+      "seed": 777,
+      "train_size": 0.8,
+      "status": "completed",
+      "coverage": 0.9124579124579124,
+      "mean_set_size": 3.127946127946128,
+      "normalized_mean_set_size": 0.3127946127946128,
+      "metrics_sha256": "d61e607ee6dde78862390ce974dba9f8b4216f16d5dfa7f181eda586ba786e89",
+      "class_metrics_sha256": "3d3ac4c9c0d0d381b7084ea416715148d07bd792980b56109b9f64cff56835bf"
+    }
+  ],
+  "claims": {
+    "full_matrix_complete": false,
+    "paper_results_reproduced": false,
+    "cluster_started": false
+  }
+}

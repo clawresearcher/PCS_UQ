@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 #SBATCH --job-name=abl3
 #SBATCH --output=logs/abalation.out  # SLURM logs inside job-specific folder
 #SBATCH --error=logs/abalation.err   # SLURM errors inside job-specific folder
@@ -74,7 +75,7 @@ if [[ "$TOTAL_JOBS" -le 0 ]]; then
 fi
 
 # Submit the array job from within the script
-if [[ "$SLURM_ARRAY_TASK_ID" == "" ]]; then
+if [[ -z "${SLURM_ARRAY_TASK_ID:-}" ]]; then
     # This is the initial submission
     echo "Submitting array job with indices 0-$MAX_ARRAY_INDEX"
     sbatch --array=0-$MAX_ARRAY_INDEX "$0"
@@ -150,6 +151,6 @@ echo "Number of Models: $NMODEL"
 echo "Calibration Method: $CALIB"
 
 # Run the Python script
-conda run -n pcs_uq python experiments/scripts/ablation_exp.py --dataset "$DATASET" --UQ_method "$UQ_METHOD" --seed "$SEED" --estimator "$ESTIMATOR" --train_size "$TRAIN_SIZE" --n_boot "$NBOOT" --abl_type "$ABL" --train_frac "$TRAIN_FRAC" --n_model "$NMODEL" --calibration_method "$CALIB"
+conda run -n pcs_uq python -m experiments.scripts.ablation_exp --dataset "$DATASET" --UQ_method "$UQ_METHOD" --seed "$SEED" --estimator "$ESTIMATOR" --train_size "$TRAIN_SIZE" --n_boot "$NBOOT" --abl_type "$ABL" --train_frac "$TRAIN_FRAC" --n_model "$NMODEL" --calibration_method "$CALIB"
 
 echo "Job completed at $(date)"

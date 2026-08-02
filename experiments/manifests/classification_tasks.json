@@ -1,0 +1,22 @@
+{
+  "schema": "pcs-uq-task-inventory-v1",
+  "family": "classification",
+  "repository_revision": "f8b6f7ce17bc71120e7e2343ecf282c6d9006292",
+  "contract_sha256": "b0213349445d6ffa21ea3dd84a4b21057a12a7585a197c365facc2dd06e26fed",
+  "task_count": 1020,
+  "task_inventory": "experiments/manifests/classification_tasks.csv",
+  "task_inventory_sha256": "d35f34e7853fedaf3363e3d231b958d483affa992ac1f64f588f502b5e9916d5",
+  "seeds": [
+    777,
+    778,
+    779,
+    780,
+    781,
+    782,
+    783,
+    784,
+    785,
+    786
+  ],
+  "train_size": "0.8"
+}

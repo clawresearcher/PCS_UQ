@@ -29,6 +29,11 @@ sources:
     uri: https://github.com/aagarwal1996/PCS_UQ
     ref: 7d666b1e4b5940d4ad884d86a60ea1f053b45d75
 
+  - id: historical_results
+    label: "Deleted paper-era aggregate artifacts"
+    uri: https://github.com/aagarwal1996/PCS_UQ
+    ref: 93c4aced0855a19fec3969a2b7ea64e4708436bd^
+
   - id: paper
     label: "PCS-UQ arXiv v3"
     uri: https://arxiv.org/e-print/2505.08784v3
@@ -79,6 +84,26 @@ inputs:
       src/PCS/classification, conformal classification baselines,
       experiments/configs/classification_*.py, and run_classification_exp.py.
     source: experiments/scripts/run_classification_exp.py
+
+  - id: reproduction_contract
+    label: "Frozen task matrices and fail-closed collector"
+    type: analysis
+    description: |
+      The manifest generator freezes exact regression/classification task keys.
+      The collector rejects missing, duplicate, unreadable, empty, or non-finite
+      result artifacts and emits a hash-bound completion report only for the
+      complete panel.
+    source: experiments/scripts/reproduction_contract.py
+
+  - id: regression_task_inventory
+    label: "Frozen 12,580-task regression matrix"
+    type: data
+    source: experiments/manifests/regression_tasks.csv
+
+  - id: classification_task_inventory
+    label: "Frozen 1,020-task classification matrix"
+    type: data
+    source: experiments/manifests/classification_tasks.csv
 
   - id: paper_protocol
     label: "Paper scientific rationale and reporting contract"
@@ -143,7 +168,7 @@ outputs:
     target: experiments/results/reg_max/data_*/*_seed_*_train_size_0.8_metrics.pkl
     recipe:
       command: >-
-        python experiments/scripts/run_regression_exp.py --dataset DATASET
+        python -m experiments.scripts.run_regression_exp --dataset DATASET
         --seed SEED --UQ_method UQ_METHOD --estimator ESTIMATOR
         --train_size 0.8
 
@@ -163,7 +188,7 @@ outputs:
     target: experiments/results/reg_max/data_*/*_seed_*_train_size_0.8_subgroup_metrics.pkl
     recipe:
       command: >-
-        python experiments/scripts/run_regression_exp.py --dataset DATASET
+        python -m experiments.scripts.run_regression_exp --dataset DATASET
         --seed SEED --UQ_method UQ_METHOD --estimator ESTIMATOR
         --train_size 0.8
 
@@ -171,28 +196,24 @@ outputs:
     label: "Historical aggregated regression metrics"
     type: data
     description: |
-      Committed paper-era aggregate under experiments/results/regression. It was
-      produced by earlier 5,000-row-cap code, not by the current reg_max runner.
-      The aggregator computes mean and population SD over available seed pickles
-      and does not certify complete ten-seed coverage.
-    inputs: [regression_data, regression_code, paper_protocol]
+      Artifact available only from `historical_results:experiments/results/regression/aggregated_results/all_results_train_size_0.8.pkl`.
+      It was deleted from the current tree by commit 93c4aced. The current recipe
+      cannot recreate it without the corresponding historical per-seed artifacts,
+      so this output is comparison-only evidence, not a current local target.
+    inputs: [historical_results:experiments/results/regression/aggregated_results/all_results_train_size_0.8.pkl, paper_protocol]
     decisions: [training_cap, seed_policy, seed_completion_policy, seed_aggregation]
-    target: experiments/results/regression/aggregated_results/all_results_train_size_0.8.pkl
-    recipe:
-      command: python experiments/scripts/agg_results.py --task regression --train_size 0.8
+    target: historical-results/regression/all_results_train_size_0.8.pkl
 
   - id: subgroup_aggregate
     label: "Historical aggregated regression subgroup metrics"
     type: data
     description: |
-      Committed paper-era subgroup aggregate produced by earlier capped-run
-      artifacts. Mean and population SD are computed over available files;
-      missing seeds/subgroups are skipped by broad exception handling.
-    inputs: [regression_data, regression_code, paper_protocol]
+      Artifact available only from `historical_results:experiments/results/regression/aggregated_results/all_subgroup_results_train_size_0.8.pkl`.
+      It was deleted from the current tree and is comparison-only evidence.
+      Its earlier aggregation accepted available cases and skipped missing cells.
+    inputs: [historical_results:experiments/results/regression/aggregated_results/all_subgroup_results_train_size_0.8.pkl, paper_protocol]
     decisions: [training_cap, subgroup_width_normalization, seed_policy, seed_completion_policy, seed_aggregation]
-    target: experiments/results/regression/aggregated_results/all_subgroup_results_train_size_0.8.pkl
-    recipe:
-      command: python experiments/scripts/agg_results.py --task regression --train_size 0.8
+    target: historical-results/regression/all_subgroup_results_train_size_0.8.pkl
 
   - id: regression_current_aggregate
     label: "Current reg_max aggregate"
@@ -274,10 +295,10 @@ outputs:
       - classification_score
       - classification_size_normalization
       - empty_set_policy
-    target: experiments/results/classification/data_*/*_seed_*_train_size_0.8_*metrics.pkl
+    target: experiments/results/class_max/data_*/*_seed_*_train_size_0.8_*metrics.pkl
     recipe:
       command: >-
-        python experiments/scripts/run_classification_exp.py --dataset DATASET
+        python -m experiments.scripts.run_classification_exp --dataset DATASET
         --seed SEED --UQ_method UQ_METHOD --estimator ESTIMATOR
         --train_size 0.8
 
@@ -289,9 +310,9 @@ outputs:
       pickles for the configured six datasets. Missing runs are skipped.
     inputs: [classification_seed_metrics]
     decisions: [seed_policy, seed_completion_policy, seed_aggregation, empty_set_policy, classification_size_normalization]
-    target: experiments/results/classification/aggregated_results/all_results_train_size_0.8.pkl
+    target: experiments/results/class_max/aggregated_results/all_results_train_size_0.8.pkl
     recipe:
-      command: python experiments/scripts/agg_results_classification.py --task classification --train_size 0.8
+      command: python experiments/scripts/agg_results_classification.py --task class_max --train_size 0.8
 
   - id: classification_figure
     label: "Paper multiclass set-size figure"
@@ -325,10 +346,10 @@ outputs:
       - training_fraction
       - prediction_check_k
       - calibration_geometry
-    target: experiments/results/ablation/data_*/*_ablation_metrics.pkl
+    target: experiments/results/ablation/*/data_*/*_ablation_metrics.pkl
     recipe:
       command: >-
-        python experiments/scripts/ablation_exp.py --dataset DATASET --seed SEED
+        python -m experiments.scripts.ablation_exp --dataset DATASET --seed SEED
         --UQ_method UQ_METHOD --estimator ESTIMATOR --train_size 0.8
         --n_boot N_BOOT --abl_type ABLATION --train_frac TRAIN_FRAC
         --n_model TOP_K --calibration_method CALIBRATION
@@ -345,16 +366,62 @@ outputs:
     recipe:
       command: jupyter nbconvert --execute --to notebook --inplace experiments/notebooks/viz_ablation.ipynb
 
+  - id: regression_completion_report
+    label: "Strict complete regression panel"
+    type: report
+    description: |
+      Hash-bound report emitted only after all 12,580 frozen tasks have readable,
+      non-empty marginal and subgroup artifacts with unique scientific keys.
+    inputs: [regression_seed_metrics, regression_subgroup_metrics, regression_task_inventory, reproduction_contract]
+    decisions: [seed_completion_policy, paper_alignment_policy]
+    target: experiments/reproduction/regression_complete.json
+    recipe:
+      command: >-
+        python experiments/scripts/reproduction_contract.py collect
+        --family regression --inventory experiments/manifests/regression_tasks.csv
+        --results-root experiments/results/reg_max --require-subgroups
+        --output experiments/reproduction/regression_completed_rows.csv
+
+  - id: classification_completion_report
+    label: "Strict complete classification panel"
+    type: report
+    description: |
+      Hash-bound report emitted only after all 1,020 frozen classification tasks
+      have readable, non-empty metric artifacts with unique scientific keys.
+    inputs: [classification_seed_metrics, classification_task_inventory, reproduction_contract]
+    decisions: [seed_completion_policy, paper_alignment_policy]
+    target: experiments/reproduction/classification_complete.json
+    recipe:
+      command: >-
+        python experiments/scripts/reproduction_contract.py collect
+        --family classification --inventory experiments/manifests/classification_tasks.csv
+        --results-root experiments/results/class_max
+        --output experiments/reproduction/classification_completed_rows.csv
+
+  - id: local_pilot_record
+    label: "Executed local two-task pilot"
+    type: report
+    description: |
+      Actual 2026-08-02 smoke execution: Parkinsons split-conformal OLS and Yeast
+      APS logistic regression. Both completed in a fresh requirements.txt venv.
+      The record explicitly does not claim full-matrix or paper reproduction.
+    inputs: [regression_seed_metrics, classification_seed_metrics, reproduction_contract]
+    decisions: [paper_alignment_policy]
+    target: experiments/reproduction/local_pilot.json
+
   - id: paper_reproduction_record
     label: "PCS-UQ paper reproduction record"
     type: report
     description: |
       Prospective cluster reproduction record spanning processed benchmark bytes,
-      exact run matrices, completeness checks, aggregates, and paper-figure
-      comparisons. No successful reproduction is claimed by this registration.
+      frozen task matrices, strict hash-bound completion reports, aggregates, and
+      paper-figure comparisons. No successful reproduction is claimed by this
+      registration.
     inputs:
-      - regression_aggregate
-      - subgroup_aggregate
+      - regression_completion_report
+      - classification_completion_report
+      - regression_current_aggregate
+      - subgroup_current_aggregate
       - regression_main_figure
       - subgroup_figures
       - classification_aggregate

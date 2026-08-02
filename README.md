@@ -53,6 +53,7 @@ per-run metrics, aggregation, notebooks, and figures. Its decisions and rational
 were reconciled against arXiv:2505.08784v3.
 
 The record intentionally uses approved draft ASTRA multiverse and output-target
-fields. See `ASTRA_RFC_NOTES.md` for known paper/code differences that must be
-resolved before claiming a cluster reproduction, and for why released ASTRA
-validation is expected to reject the draft surface.
+fields. `ASTRA_RFC_NOTES.md` explains known paper/code differences and why released
+ASTRA validation is expected to reject the draft surface. `ASTRA_REPRODUCTION.md`
+contains the frozen cluster matrices, strict completion gates, and the first
+executed local pilot.
