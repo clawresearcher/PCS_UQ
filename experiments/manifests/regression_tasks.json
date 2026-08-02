@@ -1,11 +1,11 @@
 {
   "schema": "pcs-uq-task-inventory-v2",
   "family": "regression",
-  "repository_revision": "ae5026f37f1977ed48aa6f2d6d52bd21d650bdf9",
+  "repository_revision": "156bf95b839dd8e7d9df8c420926cd4e1aaa342c",
   "scientific_source_sha256": "7d82453913a3ffa28da1ed5d93cd9c8eac5d6dd84c7b54b9942323ff9d894106",
-  "contract_sha256": "e9c99862e3061218b7df88b9f0dbcb85d3e63732c89fb7a164accf0c3fa2dfb2",
+  "contract_sha256": "0bb45a72afe3d5c624aafd5b636836b197e697b5148fa5c08c1a64c59001a5b6",
   "task_count": 12580,
-  "task_inventory": "experiments/manifests/regression_tasks.csv",
+  "task_inventory": "regression_tasks.csv",
   "task_inventory_sha256": "272ce10dc668abbc845848824766436c5cc5cff3a57bf65c4ac2a6f7da84f2e4",
   "seeds": [
     777,
