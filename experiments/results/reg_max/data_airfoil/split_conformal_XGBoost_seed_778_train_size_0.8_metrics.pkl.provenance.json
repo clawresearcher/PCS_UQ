@@ -1,5 +1,6 @@
 {
-  "schema": "pcs-uq-artifact-provenance-v1",
+  "schema": "pcs-uq-artifact-provenance-v2",
+  "output_id": "regression_seed_metrics",
   "task_hash": "sha256:c0b76b37996ffb712d4a94d8608bcec7395f3d6e22e42a1ea11b614fea376dfb",
   "task": {
     "task_id": "1",
@@ -12,11 +13,11 @@
     "train_size": "0.8"
   },
   "inventory_hash": "sha256:10cb6bdc1e2ff2c99e2826f9f38595e2f6f4a7b4a3509730f90277ee18716a27",
-  "contract_hash": "sha256:f7048d1f71fa8b9ef3eb8027ad8ca0ab56189611c707489a59548baa22ffbc00",
-  "scientific_source_hash": "sha256:1f6d9d54b84681980c3580ba3e424d2be7664ec0c9e1d0b3d20035e715614cd8",
+  "contract_hash": "sha256:28518de9d24abd970f835a445a9387683b86e9dccfc38d93ef12adc0c0ccabfe",
+  "scientific_source_hash": "sha256:d5d1536e08760a12995d16c455389b7534f07fd58c9f12dea2ff3a09f89a424a",
   "universe_id": "current_repository",
-  "universe_hash": "sha256:e8df762c58d5537336f6eccc775146585d06b1b77ae43d99aa304623c57bbb56",
-  "producer_revision": "8e69dac2d778c8e4d7bf75ee9c4930b29afec49f",
+  "universe_hash": "sha256:ab253875f8fbe5f43deb0c4ed4cf9d075e165adfa1f95e5f744253a341647f04",
+  "producer_revision": "357334c03037dc0e9b757390a37541bed9dc9e95",
   "artifact_kind": "metrics",
-  "artifact_hash": "sha256:c6983324a06d4187e3848c36904397491d59e5f35898d8dc798fa67ac29bd940"
+  "artifact_hash": "sha256:e822426de0f6fc04feb53fa008d5f26ff72f4a02387ff28d4e6e4b9453116e94"
 }

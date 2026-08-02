@@ -149,11 +149,9 @@ outputs:
     label: "Per-seed regression marginal metrics"
     type: data
     description: |
-      One pickle per dataset/method/estimator/seed. The outer split reserves 20%
-      for test evaluation. At this fork base, run_regression_exp.py defaults to
-      experiments/results/reg_max and does not apply its declared max_samples
-      argument; historical paper artifacts under experiments/results/regression
-      were produced by earlier code that capped the training partition at 5,000.
+      Run one exact frozen task by replacing `<TASK_ID>` with an integer row index.
+      Array execution is defined by `submit_manifest_array.sh`; the command below is
+      a template, not directly executable until instantiated.
       Method-specific fit/calibration is delegated to the selected implementation.
     inputs: [processed_regression_benchmark, regression_code, paper_protocol]
     decisions:
@@ -172,7 +170,7 @@ outputs:
     recipe:
       command: >-
         python -m experiments.scripts.run_manifest_task
-        --inventory experiments/manifests/regression_tasks.csv --task-id TASK_ID
+        --inventory experiments/manifests/regression_tasks.csv --task-id <TASK_ID>
 
   - id: regression_subgroup_metrics
     label: "Per-seed regression subgroup metrics"
@@ -191,7 +189,7 @@ outputs:
     recipe:
       command: >-
         python -m experiments.scripts.run_manifest_task
-        --inventory experiments/manifests/regression_tasks.csv --task-id TASK_ID
+        --inventory experiments/manifests/regression_tasks.csv --task-id <TASK_ID>
 
   - id: regression_aggregate
     label: "Historical aggregated regression metrics"
@@ -251,36 +249,32 @@ outputs:
     label: "Paper regression width figure"
     type: figure
     description: |
-      Notebook-rendered marginal normalized-width comparison. Paper v3 reports
-      PCS-OOB, globally oracle-selected split conformal (XGBoost), Studentized
-      conformal (bagged ensemble), and J+aB (XGBoost). The committed visualization
-      notebook does not fully encode that final roster: it includes archived
-      Majority Vote and lacks a direct J+aB plotting path.
+      Interpretive ASTRA registration of the paper-era figure. The repository
+      notebook is not a clean recipe: it reads current `reg_max`, requires legacy
+      per-dataset aggregates, writes `regression_widths_inset_small.pdf`, and does
+      not fully encode the paper's final method roster. Consequently no executable
+      recipe or materialized figure target is claimed here.
     inputs: [regression_aggregate, paper_protocol]
     decisions:
       - regression_report_roster
       - baseline_selection
       - marginal_width_normalization
       - figure_execution_mode
-    target: experiments/notebooks/figures/regression_widths_inset.pdf
-    recipe:
-      command: jupyter nbconvert --execute --to notebook --inplace experiments/notebooks/viz_reg.ipynb
+    target: experiments/notebooks/viz_reg.ipynb
 
   - id: subgroup_figures
     label: "Regression subgroup figures"
     type: figure
     description: |
-      Notebook-rendered coverage-versus-width panels based on the aggregate
-      subgroup pickle and manually selected display features/categories. The
-      figures are presentation recipes, not a clean batch command.
+      Interpretive registration only. The notebook reads an undeclared legacy
+      `reg_max_done` aggregate rather than the authenticated subgroup aggregate, so
+      no executable figure recipe or materialized target is claimed.
     inputs: [subgroup_aggregate, paper_protocol]
     decisions:
       - subgroup_report_roster
       - subgroup_display_selection
       - figure_execution_mode
-    target: experiments/notebooks/figures/
-    recipe:
-      command: jupyter nbconvert --execute --to notebook --inplace experiments/notebooks/subgroup_reg_viz.ipynb
+    target: experiments/notebooks/subgroup_reg_viz.ipynb
 
   - id: classification_seed_metrics
     label: "Per-seed multiclass metrics"
@@ -308,7 +302,7 @@ outputs:
     recipe:
       command: >-
         python -m experiments.scripts.run_manifest_task
-        --inventory experiments/manifests/classification_tasks.csv --task-id TASK_ID
+        --inventory experiments/manifests/classification_tasks.csv --task-id <TASK_ID>
 
   - id: classification_aggregate
     label: "Aggregated multiclass metrics"
@@ -331,17 +325,16 @@ outputs:
     label: "Paper multiclass set-size figure"
     type: figure
     description: |
-      Notebook-rendered comparison of PCS-OOB, APS, RAPS, Top-K, and archived
-      Majority Vote. Paper interpretation uses globally oracle-selected baseline
-      estimators and reports six datasets.
+      Interpretive registration only. The notebook writes
+      `classification_widths.pdf`, not the former registered target, and has not
+      been exercised against a complete authenticated aggregate. No executable
+      figure recipe or materialized target is claimed.
     inputs: [classification_aggregate, paper_protocol]
     decisions:
       - classification_report_roster
       - baseline_selection
       - figure_execution_mode
-    target: experiments/notebooks/figures/classification_widths_new.pdf
-    recipe:
-      command: jupyter nbconvert --execute --to notebook --inplace experiments/notebooks/viz_class.ipynb
+    target: experiments/notebooks/viz_class.ipynb
 
   - id: ablation_seed_metrics
     label: "Regression ablation per-seed metrics"
@@ -524,7 +517,7 @@ universes:
     description: "Executable current fork protocol and full frozen task matrices."
     decisions:
       regression_dataset_scope: paper_17
-      classification_dataset_scope: committed_8
+      classification_dataset_scope: executable_6
       preprocessing_boundary: committed_processed_bytes
       subgroup_construction: committed_manual_groups
       seed_policy: paper_777_786
@@ -596,7 +589,8 @@ decisions:
     default: paper_6
     options:
       paper_6: {label: "Six datasets reported by arXiv v3"}
-      committed_8: {label: "All eight committed processed directories"}
+      executable_6: {label: "Six datasets present in the executable classification configuration"}
+      committed_8: {label: "Eight processed directories, not all executable by the current configuration"}
 
   preprocessing_boundary:
     label: "Data provenance boundary"

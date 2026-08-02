@@ -10,6 +10,7 @@ from pathlib import Path
 
 from experiments.scripts.reproduction_contract import (
     artifact_paths,
+    artifact_provenance_path,
     load_and_bind_inventory,
     write_artifact_provenance,
 )
@@ -34,6 +35,16 @@ def main() -> None:
         if row["family"] == "regression"
         else "experiments.scripts.run_classification_exp"
     )
+    estimator_argument = row["estimator"]
+    if estimator_argument == "__candidate_pool__":
+        estimator_argument = (
+            "XGBoost" if row["family"] == "regression" else "HistGradientBoosting"
+        )
+    results_root = (
+        args.repository / "experiments/results/reg_max"
+        if row["family"] == "regression"
+        else args.repository / "experiments/results/class_max"
+    )
     command = [
         sys.executable,
         "-m",
@@ -45,18 +56,24 @@ def main() -> None:
         "--seed",
         row["seed"],
         "--estimator",
-        row["estimator"],
+        estimator_argument,
         "--train_size",
         row["train_size"],
     ]
+    paths = artifact_paths(results_root, row)
+    provenance_paths = [artifact_provenance_path(path) for path in paths.values()]
+    if any(path.exists() for path in (*paths.values(), *provenance_paths)):
+        existing = [
+            str(path)
+            for path in (*paths.values(), *provenance_paths)
+            if path.exists()
+        ]
+        raise SystemExit(
+            "refusing to relabel existing task artifacts; remove or archive first: "
+            f"{existing}"
+        )
     print("PCS_UQ_TASK", *command, flush=True)
     subprocess.run(command, check=True, cwd=args.repository)
-    results_root = (
-        args.repository / "experiments/results/reg_max"
-        if row["family"] == "regression"
-        else args.repository / "experiments/results/class_max"
-    )
-    paths = artifact_paths(results_root, row)
     missing = [str(path) for path in paths.values() if not path.is_file()]
     if missing:
         raise SystemExit(f"producer did not emit expected artifacts: {missing}")

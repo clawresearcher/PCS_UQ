@@ -108,7 +108,7 @@ REGRESSION_ESTIMATOR_NAMED = frozenset(
         "pcs_oob_downsample_fixed_method",
     }
 )
-REGRESSION_REDUCED_ESTIMATORS = ("XGBoost",)
+REGRESSION_REDUCED_ESTIMATORS = ("__candidate_pool__",)
 CLASSIFICATION_DATASETS = (
     "data_language",
     "data_yeast",
@@ -135,7 +135,7 @@ CLASSIFICATION_REDUCED_METHODS = frozenset({"majority_vote", "pcs_oob"})
 CLASSIFICATION_ESTIMATOR_NAMED = frozenset(
     {"split_conformal_aps", "split_conformal_raps", "split_conformal_topk"}
 )
-CLASSIFICATION_REDUCED_ESTIMATORS = ("HistGradientBoosting",)
+CLASSIFICATION_REDUCED_ESTIMATORS = ("__candidate_pool__",)
 REGRESSION_METRICS = frozenset(
     {
         "coverage",
@@ -210,8 +210,7 @@ def resolved_universe(repository: Path, universe_id: str) -> dict[str, Any]:
     return {
         "schema": IDENTITY_SCHEMA,
         "analysis": manifest["analysis"],
-        "analysis_version": manifest["analysis_version"],
-        "universe_id": universe_id,
+        "source": manifest["source"],
         "decisions": decisions,
     }
 
@@ -439,14 +438,27 @@ def artifact_provenance_path(path: Path) -> Path:
     return path.with_suffix(path.suffix + ".provenance.json")
 
 
+def output_id_for(family: str, kind: str) -> str:
+    if family == "regression":
+        return (
+            "regression_seed_metrics"
+            if kind == "metrics"
+            else "regression_subgroup_metrics"
+        )
+    return "classification_seed_metrics"
+
+
 def provenance_payload(
     row: dict[str, str],
     inventory: Path,
     repository: Path,
+    kind: str,
 ) -> dict[str, Any]:
     metadata = json.loads(inventory.with_suffix(".json").read_text())
+    output_id = output_id_for(row["family"], kind)
     return {
-        "schema": "pcs-uq-artifact-provenance-v1",
+        "schema": "pcs-uq-artifact-provenance-v2",
+        "output_id": output_id,
         "task_hash": task_identity(row, metadata["task_inventory_sha256"]),
         "task": {key: row[key] for key in INVENTORY_FIELDS},
         "inventory_hash": f"sha256:{metadata['task_inventory_sha256']}",
@@ -464,8 +476,8 @@ def write_artifact_provenance(
     repository: Path,
     paths: dict[str, Path],
 ) -> None:
-    payload = provenance_payload(row, inventory, repository)
     for kind, path in paths.items():
+        payload = provenance_payload(row, inventory, repository, kind)
         record = {
             **payload,
             "artifact_kind": kind,
@@ -492,7 +504,7 @@ def verify_artifact_provenance(
     except Exception as exc:
         raise ReproductionError(f"invalid producer provenance: {sidecar}") from exc
     expected = {
-        **provenance_payload(row, inventory, repository),
+        **provenance_payload(row, inventory, repository, kind),
         "artifact_kind": kind,
         "artifact_hash": file_hash(path),
     }
@@ -630,8 +642,69 @@ def validate_artifact(kind: str, path: Path, family: str) -> str:
 
 
 def remove_stale_publication(output: Path) -> None:
+    """Explicit cleanup helper; collection failures never delete prior valid evidence."""
     output.unlink(missing_ok=True)
     output.with_suffix(".json").unlink(missing_ok=True)
+
+
+def build_collection_manifest(
+    family: str,
+    rows: list[dict[str, str]],
+    metadata: dict[str, Any],
+    repository: Path,
+    require_subgroups: bool,
+    observed_members: list[dict[str, str]],
+) -> dict[str, Any]:
+    expected_members = []
+    kinds = (
+        ("metrics", "subgroup_metrics")
+        if family == "regression" and require_subgroups
+        else ("metrics",)
+        if family == "regression"
+        else ("metrics", "full_metrics", "class_metrics", "full_class_metrics")
+    )
+    for row in rows:
+        for kind in kinds:
+            expected_members.append(
+                {
+                    "output_id": output_id_for(family, kind),
+                    "task_hash": task_identity(row, metadata["task_inventory_sha256"]),
+                    "artifact_kind": kind,
+                }
+            )
+    expected_members = sorted(
+        expected_members,
+        key=lambda item: (item["output_id"], item["task_hash"], item["artifact_kind"]),
+    )
+    observed_members = sorted(
+        observed_members,
+        key=lambda item: (item["output_id"], item["task_hash"], item["artifact_kind"]),
+    )
+    universe_hash, universe = universe_identity(repository, metadata["universe_id"])
+    return {
+        "schema": "pcs-uq-output-collection-v2",
+        "output_ids": sorted({output_id_for(family, kind) for kind in kinds}),
+        "universe_hash": universe_hash,
+        "universe": universe,
+        "inventory_hash": f"sha256:{metadata['task_inventory_sha256']}",
+        "scientific_source_hash": f"sha256:{metadata['scientific_source_sha256']}",
+        "contract_hash": f"sha256:{metadata['contract_sha256']}",
+        "expected_members": expected_members,
+        "observed_members": observed_members,
+        "validation": {
+            "status": "complete" if len(expected_members) == len(observed_members) else "incomplete",
+            "expected_count": len(expected_members),
+            "observed_count": len(observed_members),
+            "omitted": [
+                item for item in expected_members if not any(
+                    member["output_id"] == item["output_id"]
+                    and member["task_hash"] == item["task_hash"]
+                    and member["artifact_kind"] == item["artifact_kind"]
+                    for member in observed_members
+                )
+            ],
+        },
+    }
 
 
 def collect(
@@ -642,7 +715,6 @@ def collect(
     require_subgroups: bool,
     repository: Path,
 ) -> None:
-    remove_stale_publication(output)
     rows = load_and_bind_inventory(inventory, repository)
     metadata = json.loads(inventory.with_suffix(".json").read_text())
     if metadata["family"] != family:
@@ -678,6 +750,7 @@ def collect(
             record[f"{kind}_path"] = str(path)
             record[f"{kind}_sha256"] = artifact_hash
             record[f"{kind}_task_hash"] = provenance["task_hash"]
+            record[f"{kind}_output_id"] = provenance["output_id"]
         records.append(record)
 
     key_counts = Counter(
@@ -687,21 +760,6 @@ def collect(
     if set(key_counts.values()) != {1}:
         raise ReproductionError("duplicate scientific task key in completed panel")
 
-    expected_members = []
-    for row in rows:
-        paths = artifact_paths(results_root, row)
-        for kind in paths:
-            if family == "regression" and kind == "subgroup_metrics" and not require_subgroups:
-                continue
-            expected_members.append(
-                {
-                    "task_hash": task_identity(row, metadata["task_inventory_sha256"]),
-                    "artifact_kind": kind,
-                }
-            )
-    expected_members = sorted(
-        expected_members, key=lambda item: (item["task_hash"], item["artifact_kind"])
-    )
     observed_members = []
     for record in records:
         for kind in artifact_paths(results_root, record):
@@ -709,33 +767,24 @@ def collect(
                 continue
             observed_members.append(
                 {
+                    "output_id": record[f"{kind}_output_id"],
                     "task_hash": record[f"{kind}_task_hash"],
                     "artifact_kind": kind,
                     "artifact_hash": f"sha256:{record[f'{kind}_sha256']}",
                 }
             )
-    observed_members = sorted(
+    collection_manifest = build_collection_manifest(
+        family,
+        rows,
+        metadata,
+        repository,
+        require_subgroups,
         observed_members,
-        key=lambda item: (item["task_hash"], item["artifact_kind"]),
     )
-    universe_hash, universe = universe_identity(repository, metadata["universe_id"])
-    collection_manifest = {
-        "schema": "pcs-uq-output-collection-v1",
-        "output_id": f"{family}_complete_artifacts",
-        "universe_hash": universe_hash,
-        "universe": universe,
-        "inventory_hash": f"sha256:{metadata['task_inventory_sha256']}",
-        "scientific_source_hash": f"sha256:{metadata['scientific_source_sha256']}",
-        "contract_hash": f"sha256:{metadata['contract_sha256']}",
-        "expected_members": expected_members,
-        "observed_members": observed_members,
-        "validation": {
-            "status": "complete",
-            "expected_count": len(expected_members),
-            "observed_count": len(observed_members),
-            "omitted": [],
-        },
-    }
+    validation = collection_manifest["validation"]
+    if validation["status"] != "complete" or validation["omitted"]:
+        raise ReproductionError("observed artifacts do not match expected collection")
+    universe_hash = collection_manifest["universe_hash"]
     collection_hash = typed_hash("astra-collection-v1", collection_manifest)
 
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -775,7 +824,6 @@ def collect(
     except BaseException:
         staged_csv.unlink(missing_ok=True)
         staged_report.unlink(missing_ok=True)
-        remove_stale_publication(output)
         raise
     print(f"PCS_UQ_COMPLETE family={family} tasks={len(records)}")
 
@@ -796,16 +844,66 @@ def verify_completion_report(
         raise ReproductionError("completion report status/family mismatch")
     if report.get("completed_rows_sha256") != sha256(completed_rows_path):
         raise ReproductionError("completed rows differ from completion report")
-    manifest = report.get("collection_manifest")
-    if report.get("collection_hash") != typed_hash("astra-collection-v1", manifest):
+
+    inventory = Path(report.get("inventory_path", ""))
+    if not inventory.is_file():
+        raise ReproductionError("completion inventory is unavailable")
+    if report.get("inventory_sha256") != sha256(inventory):
+        raise ReproductionError("completion inventory bytes differ")
+    if report.get("inventory_metadata_sha256") != sha256(inventory.with_suffix(".json")):
+        raise ReproductionError("completion inventory metadata differs")
+    rows = load_and_bind_inventory(inventory, repository)
+    metadata = json.loads(inventory.with_suffix(".json").read_text())
+    if report.get("task_count") != len(rows):
+        raise ReproductionError("completion task count differs from inventory")
+    if report.get("scientific_source_sha256") != repository_tree_hash(repository):
+        raise ReproductionError("completion source binding differs")
+    if report.get("contract_sha256") != sha256(Path(__file__).resolve()):
+        raise ReproductionError("completion contract binding differs")
+
+    with completed_rows_path.open(newline="") as handle:
+        completed = list(csv.DictReader(handle))
+    if len(completed) != len(rows):
+        raise ReproductionError("completed rows do not match inventory cardinality")
+    canonical_rows = [
+        {key: str(value) for key, value in row.items()}
+        for row in rows
+    ]
+    for expected, observed in zip(canonical_rows, completed, strict=True):
+        if any(observed.get(key) != expected[key] for key in INVENTORY_FIELDS):
+            raise ReproductionError("completed rows do not match inventory coordinates")
+
+    observed_members = []
+    for record in completed:
+        for kind in ("metrics", "subgroup_metrics", "full_metrics", "class_metrics", "full_class_metrics"):
+            hash_key = f"{kind}_sha256"
+            if hash_key not in record or not record[hash_key]:
+                continue
+            output_id = record.get(f"{kind}_output_id")
+            task_hash = record.get(f"{kind}_task_hash")
+            if output_id != output_id_for(family, kind) or not task_hash:
+                raise ReproductionError("completed member identity is malformed")
+            observed_members.append(
+                {
+                    "output_id": output_id,
+                    "task_hash": task_hash,
+                    "artifact_kind": kind,
+                    "artifact_hash": f"sha256:{record[hash_key]}",
+                }
+            )
+
+    expected_manifest = build_collection_manifest(
+        family,
+        rows,
+        metadata,
+        repository,
+        bool(report.get("require_subgroups")),
+        observed_members,
+    )
+    if report.get("collection_manifest") != expected_manifest:
+        raise ReproductionError("completion manifest is not canonical for its inventory")
+    if report.get("collection_hash") != typed_hash("astra-collection-v1", expected_manifest):
         raise ReproductionError("collection hash does not match canonical manifest")
-    validation = manifest.get("validation", {})
-    if (
-        validation.get("status") != "complete"
-        or validation.get("expected_count") != validation.get("observed_count")
-        or validation.get("omitted") != []
-    ):
-        raise ReproductionError("collection manifest is not complete")
     expected_universe_hash, _ = universe_identity(repository, report["universe_id"])
     if report.get("universe_hash") != expected_universe_hash:
         raise ReproductionError("completion report universe differs from ASTRA")

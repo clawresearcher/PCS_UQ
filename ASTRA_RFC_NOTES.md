@@ -70,6 +70,9 @@ Before making that claim, tomorrow's cluster run must resolve these differences:
   render J+aB;
 - paper subgroup figures likewise report J+aB, while historical notebook
   selections may use Majority Vote;
+- current code's authenticated six-dataset classification inventory is
+  `classification_dataset_scope: executable_6`; two additional processed directories
+  are not executable through the current classification configuration;
 - current regression jobs write to `experiments/results/reg_max/` and use the
   full outer-training partition; paper-era aggregates now exist only in Git
   history before `93c4aced` and came from an earlier capped implementation;

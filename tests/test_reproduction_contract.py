@@ -38,7 +38,7 @@ def write_inventory(
     path: Path,
     rows: list[dict[str, object]],
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+) -> dict[str, object]:
     with path.open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
@@ -48,7 +48,10 @@ def write_inventory(
     monkeypatch.setattr(
         contract,
         "universe_identity",
-        lambda root, universe_id: ("sha256:universe", {"universe_id": universe_id}),
+        lambda root, universe_id: (
+            "sha256:universe",
+            {"source": {"repository": "test", "base_revision": "test"}, "decisions": {}},
+        ),
     )
     metadata = {
         "schema": "pcs-uq-task-inventory-v2",
@@ -63,6 +66,7 @@ def write_inventory(
         "universe_hash": "sha256:universe",
     }
     path.with_suffix(".json").write_text(json.dumps(metadata))
+    return metadata
 
 
 def marginal_metrics(family: str) -> dict[str, float]:
@@ -118,7 +122,7 @@ def write_task_artifacts(
     contract.write_artifact_provenance(string_row, inventory, Path("."), artifacts)
 
 
-def test_collect_fails_closed_and_removes_stale_publication(
+def test_collect_failure_preserves_prior_publication(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     rows = contract.task_rows("classification")[:2]
@@ -132,8 +136,8 @@ def test_collect_fails_closed_and_removes_stale_publication(
         contract.collect(
             "classification", inventory, tmp_path / "results", completed, False, Path(".")
         )
-    assert not completed.exists()
-    assert not completed.with_suffix(".json").exists()
+    assert completed.read_text() == "stale"
+    assert completed.with_suffix(".json").read_text() == "stale"
 
 
 def test_collect_certifies_distinct_complete_artifacts(
@@ -176,7 +180,7 @@ def test_collect_certifies_distinct_complete_artifacts(
     assert len(grouped) == 2
     metrics_path = Path(records[0]["metrics_path"])
     metrics_path.write_bytes(metrics_path.read_bytes() + b"tamper")
-    with pytest.raises(contract.ReproductionError, match="artifact changed"):
+    with pytest.raises(contract.ReproductionError, match="changed after completion"):
         aggregate_complete.load_authenticated(
             completed,
             completed.with_suffix(".json"),
@@ -208,7 +212,91 @@ def test_collect_rejects_invalid_metric_domain(
         )
 
 
-def test_collect_rejects_inventory_drift(
+def test_manifest_runner_refuses_existing_artifacts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    rows = contract.task_rows("regression")[:1]
+    monkeypatch.setattr(contract, "task_rows", lambda family: rows)
+    inventory = tmp_path / "tasks.csv"
+    write_inventory(inventory, rows, monkeypatch)
+    result = contract.artifact_paths(
+        tmp_path / "experiments/results/reg_max", {k: str(v) for k, v in rows[0].items()}
+    )["metrics"]
+    result.parent.mkdir(parents=True)
+    result.write_bytes(b"stale")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        __import__("sys"),
+        "argv",
+        [
+            "run_manifest_task.py",
+            "--inventory",
+            str(inventory),
+            "--task-id",
+            "0",
+            "--repository",
+            str(tmp_path),
+        ],
+    )
+    from experiments.scripts import run_manifest_task
+
+    with pytest.raises(SystemExit, match="refusing to relabel"):
+        run_manifest_task.main()
+    assert result.read_bytes() == b"stale"
+
+
+def test_fabricated_completion_report_is_rejected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    rows = contract.task_rows("classification")[:2]
+    monkeypatch.setattr(contract, "task_rows", lambda family: rows)
+    inventory = tmp_path / "tasks.csv"
+    metadata = write_inventory(inventory, rows, monkeypatch)
+    completed = tmp_path / "complete.csv"
+    with completed.open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=contract.INVENTORY_FIELDS)
+        writer.writeheader()
+    fake_manifest = {
+        "schema": "pcs-uq-output-collection-v2",
+        "output_ids": [],
+        "universe_hash": "sha256:universe",
+        "universe": {},
+        "inventory_hash": f"sha256:{metadata['task_inventory_sha256']}",
+        "scientific_source_hash": "sha256:tree",
+        "contract_hash": f"sha256:{contract.sha256(Path(contract.__file__))}",
+        "expected_members": [],
+        "observed_members": [],
+        "validation": {
+            "status": "complete",
+            "expected_count": 0,
+            "observed_count": 0,
+            "omitted": [],
+        },
+    }
+    report = {
+        "schema": "pcs-uq-completion-report-v3",
+        "status": "complete",
+        "family": "classification",
+        "universe_id": "current_repository",
+        "universe_hash": "sha256:universe",
+        "collection_hash": contract.typed_hash("astra-collection-v1", fake_manifest),
+        "collection_manifest": fake_manifest,
+        "scientific_source_sha256": "sha256:tree",
+        "contract_sha256": contract.sha256(Path(contract.__file__)),
+        "inventory_path": str(inventory),
+        "inventory_sha256": contract.sha256(inventory),
+        "inventory_metadata_sha256": contract.sha256(inventory.with_suffix(".json")),
+        "task_count": 0,
+        "completed_rows_sha256": contract.sha256(completed),
+    }
+    completed.with_suffix(".json").write_text(json.dumps(report))
+    with pytest.raises(contract.ReproductionError, match="task count"):
+        contract.verify_completion_report(
+            completed.with_suffix(".json"), completed, "classification", Path(".")
+        )
+
+
+def test_collector_rejects_inventory_drift(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     canonical = contract.task_rows("classification")[:2]

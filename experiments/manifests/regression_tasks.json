@@ -1,12 +1,12 @@
 {
   "schema": "pcs-uq-task-inventory-v2",
   "family": "regression",
-  "repository_revision": "8e69dac2d778c8e4d7bf75ee9c4930b29afec49f",
-  "scientific_source_sha256": "1f6d9d54b84681980c3580ba3e424d2be7664ec0c9e1d0b3d20035e715614cd8",
-  "contract_sha256": "f7048d1f71fa8b9ef3eb8027ad8ca0ab56189611c707489a59548baa22ffbc00",
+  "repository_revision": "357334c03037dc0e9b757390a37541bed9dc9e95",
+  "scientific_source_sha256": "d5d1536e08760a12995d16c455389b7534f07fd58c9f12dea2ff3a09f89a424a",
+  "contract_sha256": "28518de9d24abd970f835a445a9387683b86e9dccfc38d93ef12adc0c0ccabfe",
   "task_count": 12580,
   "task_inventory": "regression_tasks.csv",
-  "task_inventory_sha256": "272ce10dc668abbc845848824766436c5cc5cff3a57bf65c4ac2a6f7da84f2e4",
+  "task_inventory_sha256": "6c6d013133df7dab2173b8a6c843b6979beed450c8d118a4811ca7b597580f5f",
   "seeds": [
     777,
     778,
@@ -22,5 +22,5 @@
   "train_size": "0.8",
   "identity_schema": "pcs-uq-identity-v1",
   "universe_id": "current_repository",
-  "universe_hash": "sha256:e8df762c58d5537336f6eccc775146585d06b1b77ae43d99aa304623c57bbb56"
+  "universe_hash": "sha256:ab253875f8fbe5f43deb0c4ed4cf9d075e165adfa1f95e5f744253a341647f04"
 }

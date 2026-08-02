@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import pickle
 from collections import defaultdict
 from pathlib import Path
@@ -59,10 +60,37 @@ def load_authenticated(
     repository: Path,
     seeds_per_cell: int = 10,
 ) -> tuple[dict[tuple[str, str, str], list[dict[str, Any]]], dict[str, Any]]:
-    report_value = verify_completion_report(report, completed_rows, family, repository)
+    completion = verify_completion_report(report, completed_rows, family, repository)
     grouped: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
     with completed_rows.open(newline="") as handle:
         rows = list(csv.DictReader(handle))
+    manifest_members = completion["collection_manifest"]["observed_members"]
+    member_hashes = {
+        (member["output_id"], member["task_hash"], member["artifact_kind"]): member[
+            "artifact_hash"
+        ]
+        for member in manifest_members
+    }
+    for row in rows:
+        for member_kind in (
+            "metrics",
+            "subgroup_metrics",
+            "full_metrics",
+            "class_metrics",
+            "full_class_metrics",
+        ):
+            path_key = f"{member_kind}_path"
+            if path_key not in row or not row[path_key]:
+                continue
+            key = (
+                row[f"{member_kind}_output_id"],
+                row[f"{member_kind}_task_hash"],
+                member_kind,
+            )
+            path = Path(row[path_key])
+            if key not in member_hashes or file_hash(path) != member_hashes[key]:
+                raise ReproductionError(f"collection member changed after completion: {path}")
+
     for row in rows:
         path = Path(row[f"{kind}_path"])
         expected_hash = f"sha256:{row[f'{kind}_sha256']}"
@@ -75,7 +103,7 @@ def load_authenticated(
         raise ReproductionError(
             f"strict aggregate requires exactly {seeds_per_cell} seeds per cell"
         )
-    return grouped, report_value
+    return grouped, completion
 
 
 def main() -> None:
@@ -96,16 +124,19 @@ def main() -> None:
     for (dataset, method, estimator), values in sorted(grouped.items()):
         aggregate = aggregate_subgroups(values) if args.subgroups else aggregate_dicts(values)
         result[dataset][(method, estimator)] = aggregate
-    payload = {
-        "schema": "pcs-uq-strict-aggregate-v1",
+    result = dict(result)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    atomic_pickle_dump(result, args.output)
+    metadata_path = args.output.with_suffix(args.output.suffix + ".provenance.json")
+    metadata = {
+        "schema": "pcs-uq-strict-aggregate-v2",
         "family": args.family,
         "artifact_kind": kind,
         "collection_hash": completion["collection_hash"],
         "universe_hash": completion["universe_hash"],
-        "results": dict(result),
+        "aggregate_hash": file_hash(args.output),
     }
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    atomic_pickle_dump(payload, args.output)
+    metadata_path.write_text(json.dumps(metadata, indent=2) + "\n")
     print(
         f"PCS_UQ_AGGREGATE_OK family={args.family} kind={kind} cells={len(grouped)}"
     )

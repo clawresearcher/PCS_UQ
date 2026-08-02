@@ -22,7 +22,7 @@ identifies the serialized blob, not a format-independent scientific value.
 
 ```text
 universe_hash = H("astra-universe-v1", {
-  schema, analysis ID/version, universe ID, complete decision map
+  schema, analysis ID, immutable source origin/base revision, complete decision map
 })
 
 task_hash = H("pcs-uq-task-v1", {
@@ -35,8 +35,9 @@ materialization = (logical_slot, artifact_hash, provenance)
 
 A logical slot is not itself a materialization identity. Reruns with different
 bytes occupy the same slot but have different materializations. Producer
-provenance binds each pickle to the task, inventory, contract, scientific-source
-hash, universe hash, artifact kind, exact artifact hash, and producer revision.
+provenance binds each pickle to its ASTRA output ID, task, inventory, contract,
+scientific-source hash, universe hash, artifact kind, exact artifact hash, and
+producer revision.
 
 Two universes may produce byte-identical files. Those files share an artifact hash
 but retain distinct slots and provenance. Equal bytes never imply equal method or
@@ -49,20 +50,20 @@ The completion report embeds a location-free canonical collection manifest:
 ```text
 collection_hash = H("astra-collection-v1", {
   schema,
-  output_id,
+  output_ids,
   universe_hash and resolved universe,
   inventory/scientific-source/contract hashes,
-  expected members: sorted (task_hash, artifact_kind),
-  observed members: sorted (task_hash, artifact_kind, artifact_hash),
+  expected members: sorted (output_id, task_hash, artifact_kind),
+  observed members: sorted (output_id, task_hash, artifact_kind, artifact_hash),
   validation: status, expected_count, observed_count, omissions
 })
 ```
 
 Mutable filesystem paths live only in the paired completed-row CSV. They are not
-part of `collection_hash`. Completeness is in the hash preimage, so a complete
-smaller collection cannot masquerade as an incomplete larger one. Downstream
-aggregation verifies both the completed-row hash and canonical collection hash,
-then rehashes each artifact before reading it.
+part of `collection_hash`. Strict consumers reconstruct expected membership from
+the bound inventory and output-ID rules, compare the entire CSV against that
+inventory, and rehash every member before reading it. A fabricated or smaller
+self-reported collection therefore cannot certify itself.
 
 The CSV/report pair cannot be renamed as one atomic filesystem operation. The JSON
 report authenticates the CSV hash, and consumers must verify the pair. A crash
@@ -76,6 +77,11 @@ assigned to a declaration or hypothetical Cartesian product. This repository's
 broad regression and ablation sensitivity spaces remain unmaterialized because the
 current runners do not parameterize every declared decision or provide
 collision-free storage for that product.
+
+`experiments/manifests/astra_universes.json` is the generated runtime projection
+of the ASTRA decisions plus immutable repository-origin metadata. `astra.yaml`
+remains the authoring authority; release verification regenerates and compares the
+projection before publishing evidence.
 
 ## Relationships
 

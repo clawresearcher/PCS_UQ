@@ -1,0 +1,8 @@
+{
+  "schema": "pcs-uq-strict-aggregate-v2",
+  "family": "regression",
+  "artifact_kind": "subgroup_metrics",
+  "collection_hash": "sha256:9f6f4565b7d0332815e4e3054c3dba3ae74b24f08ec0498f530f8e62fb7ba639",
+  "universe_hash": "sha256:ab253875f8fbe5f43deb0c4ed4cf9d075e165adfa1f95e5f744253a341647f04",
+  "aggregate_hash": "sha256:2c2da8e06d984bf67f6fde4723a97650a8fa9aacc35389cdaeffd0fb5c919161"
+}

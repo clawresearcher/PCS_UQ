@@ -3,20 +3,25 @@
   "status": "complete",
   "family": "regression",
   "universe_id": "current_repository",
-  "universe_hash": "sha256:e8df762c58d5537336f6eccc775146585d06b1b77ae43d99aa304623c57bbb56",
-  "collection_hash": "sha256:1b3644220f961ac50a383220c99343c5869ad0e69928175225823ba226639f89",
+  "universe_hash": "sha256:ab253875f8fbe5f43deb0c4ed4cf9d075e165adfa1f95e5f744253a341647f04",
+  "collection_hash": "sha256:9f6f4565b7d0332815e4e3054c3dba3ae74b24f08ec0498f530f8e62fb7ba639",
   "collection_manifest": {
-    "schema": "pcs-uq-output-collection-v1",
-    "output_id": "regression_complete_artifacts",
-    "universe_hash": "sha256:e8df762c58d5537336f6eccc775146585d06b1b77ae43d99aa304623c57bbb56",
+    "schema": "pcs-uq-output-collection-v2",
+    "output_ids": [
+      "regression_seed_metrics",
+      "regression_subgroup_metrics"
+    ],
+    "universe_hash": "sha256:ab253875f8fbe5f43deb0c4ed4cf9d075e165adfa1f95e5f744253a341647f04",
     "universe": {
       "schema": "pcs-uq-identity-v1",
       "analysis": "pcs_uq_paper_experiments",
-      "analysis_version": "0.0.12",
-      "universe_id": "current_repository",
+      "source": {
+        "repository": "https://github.com/clawresearcher/PCS_UQ",
+        "base_revision": "7d666b1e4b5940d4ad884d86a60ea1f053b45d75"
+      },
       "decisions": {
         "regression_dataset_scope": "paper_17",
-        "classification_dataset_scope": "committed_8",
+        "classification_dataset_scope": "executable_6",
         "preprocessing_boundary": "committed_processed_bytes",
         "subgroup_construction": "committed_manual_groups",
         "seed_policy": "paper_777_786",
@@ -53,187 +58,227 @@
       }
     },
     "inventory_hash": "sha256:10cb6bdc1e2ff2c99e2826f9f38595e2f6f4a7b4a3509730f90277ee18716a27",
-    "scientific_source_hash": "sha256:1f6d9d54b84681980c3580ba3e424d2be7664ec0c9e1d0b3d20035e715614cd8",
-    "contract_hash": "sha256:f7048d1f71fa8b9ef3eb8027ad8ca0ab56189611c707489a59548baa22ffbc00",
+    "scientific_source_hash": "sha256:d5d1536e08760a12995d16c455389b7534f07fd58c9f12dea2ff3a09f89a424a",
+    "contract_hash": "sha256:28518de9d24abd970f835a445a9387683b86e9dccfc38d93ef12adc0c0ccabfe",
     "expected_members": [
       {
+        "output_id": "regression_seed_metrics",
         "task_hash": "sha256:009e57edb2c882c71f751491eaadbbfe24adff2f2a800e8cf4388faff9bb3283",
         "artifact_kind": "metrics"
       },
       {
-        "task_hash": "sha256:009e57edb2c882c71f751491eaadbbfe24adff2f2a800e8cf4388faff9bb3283",
-        "artifact_kind": "subgroup_metrics"
-      },
-      {
+        "output_id": "regression_seed_metrics",
         "task_hash": "sha256:5e60ad614fcfed37da5e94521169a1f19439fddee48b145b3d45a6289ca8067d",
         "artifact_kind": "metrics"
       },
       {
-        "task_hash": "sha256:5e60ad614fcfed37da5e94521169a1f19439fddee48b145b3d45a6289ca8067d",
-        "artifact_kind": "subgroup_metrics"
-      },
-      {
+        "output_id": "regression_seed_metrics",
         "task_hash": "sha256:5e724285c2e09d6a30ff130a8700681a9bbdb5bd71e257b07133c6e656861819",
         "artifact_kind": "metrics"
       },
       {
-        "task_hash": "sha256:5e724285c2e09d6a30ff130a8700681a9bbdb5bd71e257b07133c6e656861819",
-        "artifact_kind": "subgroup_metrics"
-      },
-      {
+        "output_id": "regression_seed_metrics",
         "task_hash": "sha256:766b2978155728982a6bd71e07a8177f173754d97881e41bf3c4a37c1c827457",
         "artifact_kind": "metrics"
       },
       {
-        "task_hash": "sha256:766b2978155728982a6bd71e07a8177f173754d97881e41bf3c4a37c1c827457",
-        "artifact_kind": "subgroup_metrics"
-      },
-      {
+        "output_id": "regression_seed_metrics",
         "task_hash": "sha256:8eee5f71c49d4442d6a306fc75134be3916762c45dffe3a865d2cc021da99f3b",
         "artifact_kind": "metrics"
       },
       {
-        "task_hash": "sha256:8eee5f71c49d4442d6a306fc75134be3916762c45dffe3a865d2cc021da99f3b",
-        "artifact_kind": "subgroup_metrics"
-      },
-      {
+        "output_id": "regression_seed_metrics",
         "task_hash": "sha256:a9510dbfc8b544aad79aeff681fe61a740f78d1a307bd7e16979b5c91a541fd0",
         "artifact_kind": "metrics"
       },
       {
-        "task_hash": "sha256:a9510dbfc8b544aad79aeff681fe61a740f78d1a307bd7e16979b5c91a541fd0",
-        "artifact_kind": "subgroup_metrics"
-      },
-      {
+        "output_id": "regression_seed_metrics",
         "task_hash": "sha256:c0b76b37996ffb712d4a94d8608bcec7395f3d6e22e42a1ea11b614fea376dfb",
         "artifact_kind": "metrics"
       },
       {
-        "task_hash": "sha256:c0b76b37996ffb712d4a94d8608bcec7395f3d6e22e42a1ea11b614fea376dfb",
-        "artifact_kind": "subgroup_metrics"
-      },
-      {
+        "output_id": "regression_seed_metrics",
         "task_hash": "sha256:ca5bce0c973ecf03d35c8adbc0d905a609e73170d465d677883177f55fc0c3b7",
         "artifact_kind": "metrics"
       },
       {
-        "task_hash": "sha256:ca5bce0c973ecf03d35c8adbc0d905a609e73170d465d677883177f55fc0c3b7",
-        "artifact_kind": "subgroup_metrics"
-      },
-      {
+        "output_id": "regression_seed_metrics",
         "task_hash": "sha256:d5d0c35639419207a5e37ddfd7e4c62650e099d9c1ef85eb29d41849340366fc",
         "artifact_kind": "metrics"
       },
       {
-        "task_hash": "sha256:d5d0c35639419207a5e37ddfd7e4c62650e099d9c1ef85eb29d41849340366fc",
-        "artifact_kind": "subgroup_metrics"
-      },
-      {
+        "output_id": "regression_seed_metrics",
         "task_hash": "sha256:dad65df31575f2c9e3402be71f7b47ce12ddaae607849268e491654bc8a612fc",
         "artifact_kind": "metrics"
       },
       {
+        "output_id": "regression_subgroup_metrics",
+        "task_hash": "sha256:009e57edb2c882c71f751491eaadbbfe24adff2f2a800e8cf4388faff9bb3283",
+        "artifact_kind": "subgroup_metrics"
+      },
+      {
+        "output_id": "regression_subgroup_metrics",
+        "task_hash": "sha256:5e60ad614fcfed37da5e94521169a1f19439fddee48b145b3d45a6289ca8067d",
+        "artifact_kind": "subgroup_metrics"
+      },
+      {
+        "output_id": "regression_subgroup_metrics",
+        "task_hash": "sha256:5e724285c2e09d6a30ff130a8700681a9bbdb5bd71e257b07133c6e656861819",
+        "artifact_kind": "subgroup_metrics"
+      },
+      {
+        "output_id": "regression_subgroup_metrics",
+        "task_hash": "sha256:766b2978155728982a6bd71e07a8177f173754d97881e41bf3c4a37c1c827457",
+        "artifact_kind": "subgroup_metrics"
+      },
+      {
+        "output_id": "regression_subgroup_metrics",
+        "task_hash": "sha256:8eee5f71c49d4442d6a306fc75134be3916762c45dffe3a865d2cc021da99f3b",
+        "artifact_kind": "subgroup_metrics"
+      },
+      {
+        "output_id": "regression_subgroup_metrics",
+        "task_hash": "sha256:a9510dbfc8b544aad79aeff681fe61a740f78d1a307bd7e16979b5c91a541fd0",
+        "artifact_kind": "subgroup_metrics"
+      },
+      {
+        "output_id": "regression_subgroup_metrics",
+        "task_hash": "sha256:c0b76b37996ffb712d4a94d8608bcec7395f3d6e22e42a1ea11b614fea376dfb",
+        "artifact_kind": "subgroup_metrics"
+      },
+      {
+        "output_id": "regression_subgroup_metrics",
+        "task_hash": "sha256:ca5bce0c973ecf03d35c8adbc0d905a609e73170d465d677883177f55fc0c3b7",
+        "artifact_kind": "subgroup_metrics"
+      },
+      {
+        "output_id": "regression_subgroup_metrics",
+        "task_hash": "sha256:d5d0c35639419207a5e37ddfd7e4c62650e099d9c1ef85eb29d41849340366fc",
+        "artifact_kind": "subgroup_metrics"
+      },
+      {
+        "output_id": "regression_subgroup_metrics",
         "task_hash": "sha256:dad65df31575f2c9e3402be71f7b47ce12ddaae607849268e491654bc8a612fc",
         "artifact_kind": "subgroup_metrics"
       }
     ],
     "observed_members": [
       {
+        "output_id": "regression_seed_metrics",
         "task_hash": "sha256:009e57edb2c882c71f751491eaadbbfe24adff2f2a800e8cf4388faff9bb3283",
         "artifact_kind": "metrics",
-        "artifact_hash": "sha256:176ebc9391b2a68119d042d73579ae881e7d3534cc74a20274dd3226011335f6"
+        "artifact_hash": "sha256:67aa5e2f264ce09d49694664f3526887275f6d8ec7469864c4dad9ae6698c7c6"
       },
       {
+        "output_id": "regression_seed_metrics",
+        "task_hash": "sha256:5e60ad614fcfed37da5e94521169a1f19439fddee48b145b3d45a6289ca8067d",
+        "artifact_kind": "metrics",
+        "artifact_hash": "sha256:175b206b175ec69d77efb5f6ea480d8878dd48f7770078d0c4b19dbbd327c710"
+      },
+      {
+        "output_id": "regression_seed_metrics",
+        "task_hash": "sha256:5e724285c2e09d6a30ff130a8700681a9bbdb5bd71e257b07133c6e656861819",
+        "artifact_kind": "metrics",
+        "artifact_hash": "sha256:5297eb1849fc25a0f004b25be727d2dcdedff119a76aad8a43f0405b9e881a58"
+      },
+      {
+        "output_id": "regression_seed_metrics",
+        "task_hash": "sha256:766b2978155728982a6bd71e07a8177f173754d97881e41bf3c4a37c1c827457",
+        "artifact_kind": "metrics",
+        "artifact_hash": "sha256:338d4a9e45460b7232db6adcad61c34a7df6692d52b5765c2ac3c5bd1cc1ed85"
+      },
+      {
+        "output_id": "regression_seed_metrics",
+        "task_hash": "sha256:8eee5f71c49d4442d6a306fc75134be3916762c45dffe3a865d2cc021da99f3b",
+        "artifact_kind": "metrics",
+        "artifact_hash": "sha256:c7b9998e79571b5ac729fe4926319a31e2577e7ba2959612ddb69e40166f77b1"
+      },
+      {
+        "output_id": "regression_seed_metrics",
+        "task_hash": "sha256:a9510dbfc8b544aad79aeff681fe61a740f78d1a307bd7e16979b5c91a541fd0",
+        "artifact_kind": "metrics",
+        "artifact_hash": "sha256:248f856d55edd18a4def9fa275063b7e30ee5fe40efc8bed613e5fda9d6ab082"
+      },
+      {
+        "output_id": "regression_seed_metrics",
+        "task_hash": "sha256:c0b76b37996ffb712d4a94d8608bcec7395f3d6e22e42a1ea11b614fea376dfb",
+        "artifact_kind": "metrics",
+        "artifact_hash": "sha256:e822426de0f6fc04feb53fa008d5f26ff72f4a02387ff28d4e6e4b9453116e94"
+      },
+      {
+        "output_id": "regression_seed_metrics",
+        "task_hash": "sha256:ca5bce0c973ecf03d35c8adbc0d905a609e73170d465d677883177f55fc0c3b7",
+        "artifact_kind": "metrics",
+        "artifact_hash": "sha256:8b3acc3571eb8e35c3a725142c42379600bd06b4d94c46bff0dea3cfe3c1d87e"
+      },
+      {
+        "output_id": "regression_seed_metrics",
+        "task_hash": "sha256:d5d0c35639419207a5e37ddfd7e4c62650e099d9c1ef85eb29d41849340366fc",
+        "artifact_kind": "metrics",
+        "artifact_hash": "sha256:4043811f9e7ab16857ea9923524a29fa8693e467bf3cdfffa9d1a2a9f440b593"
+      },
+      {
+        "output_id": "regression_seed_metrics",
+        "task_hash": "sha256:dad65df31575f2c9e3402be71f7b47ce12ddaae607849268e491654bc8a612fc",
+        "artifact_kind": "metrics",
+        "artifact_hash": "sha256:71b7871b7a019717aa3262eb98ea813e0f51749f2d204aaffbdba0b1d36b3682"
+      },
+      {
+        "output_id": "regression_subgroup_metrics",
         "task_hash": "sha256:009e57edb2c882c71f751491eaadbbfe24adff2f2a800e8cf4388faff9bb3283",
         "artifact_kind": "subgroup_metrics",
         "artifact_hash": "sha256:61b71ab07923f8c466d416d0dc6a6e53e4fee77a81162aaeef74a984d28e75f4"
       },
       {
-        "task_hash": "sha256:5e60ad614fcfed37da5e94521169a1f19439fddee48b145b3d45a6289ca8067d",
-        "artifact_kind": "metrics",
-        "artifact_hash": "sha256:0aeba026c42277b1de1dc8692948a6f3ec93bf4f35bdad29442ce6adeb3707fe"
-      },
-      {
+        "output_id": "regression_subgroup_metrics",
         "task_hash": "sha256:5e60ad614fcfed37da5e94521169a1f19439fddee48b145b3d45a6289ca8067d",
         "artifact_kind": "subgroup_metrics",
         "artifact_hash": "sha256:1157ae959eb3a79120ba72232860dbe010fe6b0ceafd7f53d1c383d8b254abdf"
       },
       {
-        "task_hash": "sha256:5e724285c2e09d6a30ff130a8700681a9bbdb5bd71e257b07133c6e656861819",
-        "artifact_kind": "metrics",
-        "artifact_hash": "sha256:644f79736e7b336c267e8be4061f6252cd8e85d6be22ac0c9eb3b6a213bb5fd0"
-      },
-      {
+        "output_id": "regression_subgroup_metrics",
         "task_hash": "sha256:5e724285c2e09d6a30ff130a8700681a9bbdb5bd71e257b07133c6e656861819",
         "artifact_kind": "subgroup_metrics",
         "artifact_hash": "sha256:5ebdc25bbca7e9a6a45206c99fce9c2983a43856f77c852e8f0ca31b2e056a49"
       },
       {
-        "task_hash": "sha256:766b2978155728982a6bd71e07a8177f173754d97881e41bf3c4a37c1c827457",
-        "artifact_kind": "metrics",
-        "artifact_hash": "sha256:f34970786f1afa2c4833d06fd49038ef84e1eddb82012c870f631a5120092a3d"
-      },
-      {
+        "output_id": "regression_subgroup_metrics",
         "task_hash": "sha256:766b2978155728982a6bd71e07a8177f173754d97881e41bf3c4a37c1c827457",
         "artifact_kind": "subgroup_metrics",
         "artifact_hash": "sha256:61ad85b115d6750d332f86a836ec8b8c91b453d1fff76f9fb77aa626a2bd1215"
       },
       {
-        "task_hash": "sha256:8eee5f71c49d4442d6a306fc75134be3916762c45dffe3a865d2cc021da99f3b",
-        "artifact_kind": "metrics",
-        "artifact_hash": "sha256:0ceeae93cd424e5b30d7c63cd49b10831bc705108b4057435109b9236de18705"
-      },
-      {
+        "output_id": "regression_subgroup_metrics",
         "task_hash": "sha256:8eee5f71c49d4442d6a306fc75134be3916762c45dffe3a865d2cc021da99f3b",
         "artifact_kind": "subgroup_metrics",
         "artifact_hash": "sha256:7997fd3a2501e8c21ea0cf2975aa3f61db89a560bbf062d32023632cfe1ca129"
       },
       {
-        "task_hash": "sha256:a9510dbfc8b544aad79aeff681fe61a740f78d1a307bd7e16979b5c91a541fd0",
-        "artifact_kind": "metrics",
-        "artifact_hash": "sha256:5f4334585dea172ea2ef2fa24ae596e94e9af82776b07e12727ae55e893f875f"
-      },
-      {
+        "output_id": "regression_subgroup_metrics",
         "task_hash": "sha256:a9510dbfc8b544aad79aeff681fe61a740f78d1a307bd7e16979b5c91a541fd0",
         "artifact_kind": "subgroup_metrics",
         "artifact_hash": "sha256:2a72d999a94464502007cf9d008d9b33c48685b5b3509637ca641e933f928b87"
       },
       {
-        "task_hash": "sha256:c0b76b37996ffb712d4a94d8608bcec7395f3d6e22e42a1ea11b614fea376dfb",
-        "artifact_kind": "metrics",
-        "artifact_hash": "sha256:c6983324a06d4187e3848c36904397491d59e5f35898d8dc798fa67ac29bd940"
-      },
-      {
+        "output_id": "regression_subgroup_metrics",
         "task_hash": "sha256:c0b76b37996ffb712d4a94d8608bcec7395f3d6e22e42a1ea11b614fea376dfb",
         "artifact_kind": "subgroup_metrics",
         "artifact_hash": "sha256:17cc6b90d3bc082d32dc1936fcf34bdeae5771be09e26af1e273c7a72253b996"
       },
       {
-        "task_hash": "sha256:ca5bce0c973ecf03d35c8adbc0d905a609e73170d465d677883177f55fc0c3b7",
-        "artifact_kind": "metrics",
-        "artifact_hash": "sha256:e625f87e2fb8877ea6a250578521e0217d4d1f4e65c220d04e51d34b3cbf0b9a"
-      },
-      {
+        "output_id": "regression_subgroup_metrics",
         "task_hash": "sha256:ca5bce0c973ecf03d35c8adbc0d905a609e73170d465d677883177f55fc0c3b7",
         "artifact_kind": "subgroup_metrics",
         "artifact_hash": "sha256:1322707e635d1d3ad538f11f820532be4f234155175d0a6c20ac441c4b7af78e"
       },
       {
-        "task_hash": "sha256:d5d0c35639419207a5e37ddfd7e4c62650e099d9c1ef85eb29d41849340366fc",
-        "artifact_kind": "metrics",
-        "artifact_hash": "sha256:82f9f2c1170c16cde4dead9e88475d78f1cb0155ed4bc9b12c0496cfa60987f5"
-      },
-      {
+        "output_id": "regression_subgroup_metrics",
         "task_hash": "sha256:d5d0c35639419207a5e37ddfd7e4c62650e099d9c1ef85eb29d41849340366fc",
         "artifact_kind": "subgroup_metrics",
         "artifact_hash": "sha256:9af91db866a5ad7b4f634642795eb2124b78586b0fd6ace794ad84b57e2d9b5a"
       },
       {
-        "task_hash": "sha256:dad65df31575f2c9e3402be71f7b47ce12ddaae607849268e491654bc8a612fc",
-        "artifact_kind": "metrics",
-        "artifact_hash": "sha256:6fd7a812713dbd63565ff541b105b2d8acff29532adec407a557f2aa69670898"
-      },
-      {
+        "output_id": "regression_subgroup_metrics",
         "task_hash": "sha256:dad65df31575f2c9e3402be71f7b47ce12ddaae607849268e491654bc8a612fc",
         "artifact_kind": "subgroup_metrics",
         "artifact_hash": "sha256:e6e5e957045609616e2ee10716907aaa369de1d347081d161e614b500d2d33a9"
@@ -246,15 +291,15 @@
       "omitted": []
     }
   },
-  "repository_revision": "8e69dac2d778c8e4d7bf75ee9c4930b29afec49f",
-  "scientific_source_sha256": "1f6d9d54b84681980c3580ba3e424d2be7664ec0c9e1d0b3d20035e715614cd8",
-  "contract_sha256": "f7048d1f71fa8b9ef3eb8027ad8ca0ab56189611c707489a59548baa22ffbc00",
+  "repository_revision": "357334c03037dc0e9b757390a37541bed9dc9e95",
+  "scientific_source_sha256": "d5d1536e08760a12995d16c455389b7534f07fd58c9f12dea2ff3a09f89a424a",
+  "contract_sha256": "28518de9d24abd970f835a445a9387683b86e9dccfc38d93ef12adc0c0ccabfe",
   "inventory_path": "experiments/manifests/pilot_airfoil_split_xgb_tasks.csv",
   "inventory_sha256": "10cb6bdc1e2ff2c99e2826f9f38595e2f6f4a7b4a3509730f90277ee18716a27",
-  "inventory_metadata_sha256": "abd09785854f6b9689ac8b1d10993d62584068aa5b6a76583604b41bdcb75969",
+  "inventory_metadata_sha256": "d32c692d7899aab70eb26db6062d8901b23db85375a02aa4a4e6457f85e40a4b",
   "results_root": "experiments/results/reg_max",
   "task_count": 10,
   "completed_rows_path": "experiments/reproduction/pilot_airfoil_split_xgb_completed_rows.csv",
-  "completed_rows_sha256": "ebc85c2b8cc5b35b8dad75ab981fad4d70b1f7d1fd93f0c98d11fdc6d6733088",
+  "completed_rows_sha256": "45d9af27efbc799248d90eb8c8d4ee6decb34a34d7045f81f57a0bd675cbb943",
   "require_subgroups": true
 }

@@ -19,7 +19,7 @@ A one-seed check is not a paper reproduction verdict.
 
 A complete authenticated ten-seed Airfoil split-conformal/XGBoost panel also ran
 for seeds 777-786. Its strict collection hash is
-`sha256:1b3644220f961ac50a383220c99343c5869ad0e69928175225823ba226639f89`.
+`sha256:9f6f4565b7d0332815e4e3054c3dba3ae74b24f08ec0498f530f8e62fb7ba639`.
 The current aggregate matches historical coverage exactly; width statistics differ
 only around `1e-6`. See
 `experiments/reproduction/pilot_airfoil_split_xgb_comparison.json`. This remains a
@@ -87,13 +87,14 @@ python experiments/scripts/reproduction_contract.py collect \
 
 The collector fails on the first missing, duplicate, reused, unauthenticated,
 unreadable, malformed, out-of-domain, empty, or non-finite artifact. Each artifact
-must carry a producer provenance sidecar bound to the task, inventory, contract,
-scientific-source hash, universe hash, kind, and exact bytes. Only a complete panel
-gets a completed-row table and matching hash-bound JSON report. The report embeds
-a canonical, location-free `collection_hash`; strict aggregators verify the report,
-CSV hash, and every member hash before reading. A later failed collection removes
-stale completion claims before validation; publication uses unique staged paths so
-concurrent collectors cannot share a temporary file.
+must carry a producer provenance sidecar bound to the ASTRA output ID, task,
+inventory, contract, scientific-source hash, universe hash, kind, and exact bytes.
+The manifest runner refuses all pre-existing result or sidecar paths rather than
+relabeling them as a fresh execution. Only a complete panel gets a completed-row
+table and matching hash-bound JSON report. Strict consumers reconstruct expected
+membership from the bound inventory, validate the complete CSV, and rehash every
+member before reading. A failed collection preserves any prior valid publication;
+new publications use unique staged paths.
 
 Output hashes are scoped by materialization rather than attached blindly to the
 family-level ASTRA output declaration. See `ASTRA_OUTPUT_IDENTITY.md` for the

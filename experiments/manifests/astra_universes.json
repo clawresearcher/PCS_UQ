@@ -1,6 +1,10 @@
 {
   "analysis": "pcs_uq_paper_experiments",
   "analysis_version": "0.0.12",
+  "source": {
+    "repository": "https://github.com/clawresearcher/PCS_UQ",
+    "base_revision": "7d666b1e4b5940d4ad884d86a60ea1f053b45d75"
+  },
   "universes": {
     "paper_regression": {
       "regression_dataset_scope": "paper_17",
@@ -41,7 +45,7 @@
     },
     "current_repository": {
       "regression_dataset_scope": "paper_17",
-      "classification_dataset_scope": "committed_8",
+      "classification_dataset_scope": "executable_6",
       "preprocessing_boundary": "committed_processed_bytes",
       "subgroup_construction": "committed_manual_groups",
       "seed_policy": "paper_777_786",
